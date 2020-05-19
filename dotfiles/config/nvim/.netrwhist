@@ -1,0 +1,12 @@
+let g:netrw_dirhistmax  =10
+let g:netrw_dirhistcnt =0
+let g:netrw_dirhist_0='/home/jmtzt/Desktop/WebDev/UploadFile/backend-compr'
+let g:netrw_dirhist_9='/home/jmtzt/Desktop/WebDev/comprFront/comprfront/pages'
+let g:netrw_dirhist_8='/home/jmtzt/Desktop/WebDev/comprFront/comprfront'
+let g:netrw_dirhist_7='/home/jmtzt/Desktop/WebDev/comprFront/comprfront/pages'
+let g:netrw_dirhist_6='/home/jmtzt/Desktop/WebDev/comprFront/comprfront'
+let g:netrw_dirhist_5='/home/jmtzt/Desktop/WebDev/comprFront/comprfront/components'
+let g:netrw_dirhist_4='/home/jmtzt/Desktop/WebDev/comprFront/comprfront'
+let g:netrw_dirhist_3='/home/jmtzt/Desktop/WebDev/UploadFile/frontend/src/Components/HomeScreen'
+let g:netrw_dirhist_2='/home/jmtzt/Desktop/WebDev/UploadFile/frontend/src/Components'
+let g:netrw_dirhist_1='/home/jmtzt/Desktop/WebDev/UploadFile/frontend/src'
