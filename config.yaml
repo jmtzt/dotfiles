@@ -1,0 +1,73 @@
+config:
+  backup: true
+  create: true
+  dotpath: dotfiles
+dotfiles:
+  f_zshrc:
+    src: zshrc
+    dst: ~/.zshrc
+  d_polybar:
+    src: config/polybar
+    dst: ~/.config/polybar
+  d_rofi:
+    src: config/rofi
+    dst: ~/.config/rofi
+  d_ranger:
+    src: config/ranger
+    dst: ~/.config/ranger
+  d_termite:
+    src: config/termite
+    dst: ~/.config/termite
+  d_picom:
+    src: config/picom
+    dst: ~/.config/picom
+  d_i3:
+    src: config/i3
+    dst: ~/.config/i3
+  d_i3lock-fancier:
+    src: config/i3lock-fancier
+    dst: ~/.config/i3lock-fancier
+  d_gtk-3.0:
+    src: config/gtk-3.0
+    dst: ~/.config/gtk-3.0
+  d_gtk-2.0:
+    src: config/gtk-2.0
+    dst: ~/.config/gtk-2.0
+  d_coc:
+    src: config/coc
+    dst: ~/.config/coc
+  d_dconf:
+    src: config/dconf
+    dst: ~/.config/dconf
+  d_polybar-scripts:
+    src: polybar-scripts
+    dst: ~/polybar-scripts
+  f_tmux.conf:
+    src: tmux.conf
+    dst: ~/.tmux.conf
+  f_tmux.conf.local:
+    src: tmux.conf.local
+    dst: ~/.tmux.conf.local
+  d_nvim:
+    src: config/nvim
+    dst: ~/.config/nvim
+profiles:
+  archjmtzt:
+    dotfiles:
+    - f_zshrc
+    - d_polybar
+    - d_rofi
+    - d_ranger
+    - d_termite
+    - d_picom
+    - d_i3
+    - d_i3lock-fancier
+    - d_gtk-3.0
+    - d_gtk-2.0
+    - d_coc
+    - d_dconf
+    - d_polybar-scripts
+    - f_tmux.conf
+    - f_tmux.conf.local
+
+    - d_nvim
