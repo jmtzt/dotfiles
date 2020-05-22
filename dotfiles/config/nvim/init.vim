@@ -50,7 +50,7 @@ command! -nargs=0 Prettier :CocCommand prettier.formatFile
 
 " filenames like *.xml, *.html, *.xhtml, ...
 " These are the file extensions where this plugin is enabled.
-"
+" testing dotdrop support
 let g:closetag_filenames = '*.html,*.xhtml,*.phtml, *.jsx'
 
 " filenames like *.xml, *.xhtml, ...
