@@ -82,3 +82,26 @@
           args:
             creates: "~/.local/bin/zoxide" # Prevents re-running if binary already exists
           changed_when: true
+
+        - name: Clone Oh My Tmux repository
+          ansible.builtin.git:
+            repo: 'https://github.com/gpakosz/.tmux.git'
+            dest: "~/.tmux"
+            clone: yes
+            update: yes
+
+        - name: Create symlink for the main .tmux.conf
+          ansible.builtin.file:
+            src: "~/.tmux/.tmux.conf"
+            dest: "~/.tmux.conf"
+            state: link
+            force: yes
+
+        - name: Copy custom tmux config from chezmoi source  # 🔽 NEW TASK
+          ansible.builtin.copy:
+            src: "~/.local/share/chezmoi/dot_tmux.conf.local"
+            dest: "~/.tmux.conf.local"
+            remote_src: yes
+            force: yes
+            mode: '0644'
+
