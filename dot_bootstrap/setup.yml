@@ -7,11 +7,11 @@
 
   tasks:
     - name: Get my user
-      ansible.builtin.set_fact:
+      set_fact: # CHANGED: Used short name
         remote_regular_user: "{{ ansible_env.SUDO_USER or ansible_user_id }}"
 
     - name: Install packages
-      ansible.builtin.dnf:
+      dnf: # CHANGED: Used short name
         name:
           - git
           - htop
@@ -37,52 +37,51 @@
         state: present
 
     - name: Change shell to zsh
-      ansible.builtin.user:
+      user: # CHANGED: Used short name
         name: "{{ remote_regular_user }}"
         shell: /usr/bin/zsh
 
     - name: Install DNF plugins core
-      ansible.builtin.dnf:
+      dnf: # CHANGED: Used short name
         name: dnf-plugins-core
         state: present
 
-    - name: Ensure fonts directory
-      ansible.builtin.file:
-        path: "~{{ remote_regular_user }}/.fonts"
-        state: directory
-        mode: "0755"
-        owner: "{{ remote_regular_user }}"
+    - name: Setup fonts, Tmux, and apply dotfiles
+      become_user: "{{ remote_regular_user }}"
+      block:
+        - name: Ensure fonts directory exists
+          file: # CHANGED: Used short name
+            path: "~/.fonts"
+            state: directory
+            mode: "0755"
 
-    - name: Check if Jetbrains Mono exists
-      ansible.builtin.shell: "ls ~{{ remote_regular_user }}/.fonts/JetBrainsMonoNerd*FontMono*"
-      register: jetbrains_mono_exists
-      ignore_errors: true
-      changed_when: false
+        - name: Check if Jetbrains Mono exists
+          stat: # CHANGED: Used 'stat' module for better idempotency
+            path: "~/.fonts/JetBrainsMonoNerdFontMono-Regular.ttf"
+          register: jetbrains_mono_exists
 
-    - name: Download Jetbrains mono
-      when: jetbrains_mono_exists is failed
-      ansible.builtin.unarchive:
-        src: https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/JetBrainsMono.zip
-        dest: "~{{ remote_regular_user }}/.fonts/"
-        remote_src: true
-        mode: "0755"
-        owner: "{{ remote_regular_user }}"
+        - name: Download and unpack Jetbrains mono font
+          when: not jetbrains_mono_exists.stat.exists
+          unarchive: # CHANGED: Used short name
+            src: https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/JetBrainsMono.zip
+            dest: "~/.fonts/"
+            remote_src: true
 
-    - name: Clone Oh My Tmux repository
-      ansible.builtin.git:
-      repo: 'https://github.com/gpakosz/.tmux.git'
-      dest: "~/.tmux" 
-      clone: yes
-      update: yes
+        - name: Clone Oh My Tmux repository
+          git: # CHANGED: Used short name 'git'
+            repo: 'https://github.com/gpakosz/.tmux.git'
+            dest: "~/.tmux"
+            clone: yes
+            update: yes
 
-    - name: Create symlink for the main .tmux.conf
-      ansible.builtin.file:
-        src: "~/.tmux/.tmux.conf"
-        dest: "~/.tmux.conf"
-        state: link
-        force: yes
+        - name: Create symlink for the main .tmux.conf
+          file: # CHANGED: Used short name
+            src: "~/.tmux/.tmux.conf"
+            dest: "~/.tmux.conf"
+            state: link
+            force: yes
 
-    - name: Link chezmoi config for .tmux.conf.local
-      ansible.builtin.command:
-        cmd: "chezmoi apply .tmux.conf.local"
-      changed_when: true
+        - name: Link chezmoi config for .tmux.conf.local
+          command:
+            cmd: "chezmoi apply .tmux.conf.local"
+          changed_when: true
