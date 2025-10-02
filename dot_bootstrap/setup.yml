@@ -71,11 +71,6 @@
             state: link
             force: yes
 
-        - name: Link chezmoi config for .tmux.conf.local
-          command:
-            cmd: "~/bin/chezmoi apply .tmux.conf.local" # Use the full path
-          changed_when: true
-
         - name: Install zoxide via official script
           ansible.builtin.shell:
             cmd: "curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh"
