@@ -61,43 +61,30 @@ export GRADLE_USER_HOME="$HOME/.gradle"
 export GRADLE_HOME="$HOME/.gradle"
 
 export LC_ALL=en_US.UTF-8
-case "$(uname -s)" in
-
-    # macOS
-    Darwin)
-        export PATH=/Users/jmtzt/Downloads/google-cloud-sdk/bin:\
-        /Users/jmtzt/.config/tmux/tmux-sessionizer.sh:\
-        /Users/jmtzt/.cargo/bin:\
-        /Users/jmtzt/.local/bin:\
-        /opt/apache-maven-3.8.6/bin:\
-        /opt/homebrew/Cellar/apache-spark/3.5.1/libexec/bin:\
-        /opt/homebrew/Cellar/apache-spark/3.5.1/libexec/python:\
-        /Users/jmtzt/miniforge3/envs/haltbar/bin:\
-        /opt/homebrew/bin:\
-        /opt/homebrew/sbin:\
-        /usr/local/bin:\
-        /System/Cryptexes/App/usr/bin:\
-        /usr/bin:\
-        /bin:\
-        /usr/sbin:\
-        /sbin:\
-        /var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:\
-        /var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:\
-        /var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:\
-        /opt/X11/bin:\
-        /Library/TeX/texbin:\
-        /Library/Frameworks/Mono.framework/Versions/Current/Commands:\
-        /Users/jmtzt/opt/anaconda3/condabin:\
-        /opt/homebrew/opt/fzf/bin
-        ;;
-
-    # Linux
-    Linux)
-        export PATH=/usr/local/bin:\
-        /usr/bin:\
-        /bin
-        ;;
-esac
+export PATH=/Users/jmtzt/Downloads/google-cloud-sdk/bin:\
+/Users/jmtzt/.config/tmux/tmux-sessionizer.sh:\
+/Users/jmtzt/.cargo/bin:\
+/Users/jmtzt/.local/bin:\
+/opt/apache-maven-3.8.6/bin:\
+/opt/homebrew/Cellar/apache-spark/3.5.1/libexec/bin:\
+/opt/homebrew/Cellar/apache-spark/3.5.1/libexec/python:\
+/Users/jmtzt/miniforge3/envs/haltbar/bin:\
+/opt/homebrew/bin:\
+/opt/homebrew/sbin:\
+/usr/local/bin:\
+/System/Cryptexes/App/usr/bin:\
+/usr/bin:\
+/bin:\
+/usr/sbin:\
+/sbin:\
+/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:\
+/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:\
+/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:\
+/opt/X11/bin:\
+/Library/TeX/texbin:\
+/Library/Frameworks/Mono.framework/Versions/Current/Commands:\
+/Users/jmtzt/opt/anaconda3/condabin:\
+/opt/homebrew/opt/fzf/bin
 export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
 
 export PATH=$PATH:$VCPKG_ROOT
