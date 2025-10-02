@@ -72,10 +72,10 @@
             force: yes
 
         - name: Install zoxide via official script
-          ansible.builtin.shell:
+          shell:
             cmd: "curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh"
           args:
-            creates: "~/.local/bin/zoxide" # Prevents re-running if binary already exists
+            creates: "~/.local/bin/zoxide"
           changed_when: true
 
         - name: Clone Oh My Tmux repository
