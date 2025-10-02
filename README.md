@@ -1,1 +1,1 @@
-sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply $jmtzt
+sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply jmtzt
