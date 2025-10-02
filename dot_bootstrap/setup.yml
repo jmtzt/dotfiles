@@ -17,7 +17,6 @@
           - htop
           - vim
           - neovim
-          - gh
           - build-essential
           - ripgrep
           - zsh
