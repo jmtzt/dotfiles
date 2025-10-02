@@ -1,0 +1,138 @@
+# ln -s ~/.config/zsh/zshrc ~/.zshrc
+DISABLE_AUTO_UPDATE="true"
+DISABLE_MAGIC_FUNCTIONS="true"
+DISABLE_COMPFIX="true"
+alias kc="kubectl"
+alias oc="opencode"
+alias ns="kubens | fzf | xargs -I {} kubens {}"
+alias ctx="kubectx | fzf | xargs -I {} kubectx {}"
+alias ctl='kubectl get pods | fzf | awk '\''{print $1}'\'' | xargs -o -I {} kubectl exec -it {} -- /bin/sh'
+alias cops="gh copilot suggest"
+alias ca="conda activate "
+alias cde="conda deactivate"
+alias cope="gh copilot explain"
+alias n="nnn"
+alias vim="nvim"
+alias t="tree --gitignore"
+alias leet="vim leetcode.nvim"
+alias av="source .venv/bin/activate"
+alias todo="vim ~/work/todo.md"
+
+# Smarter completion initialization
+autoload -Uz compinit
+if [ "$(date +'%j')" != "$(stat -f '%Sm' -t '%j' ~/.zcompdump 2>/dev/null)" ]; then
+    compinit
+else
+    compinit -C
+fi
+
+function brew() {
+  command brew "$@" 
+
+  if [[ $* =~ "upgrade" ]] || [[ $* =~ "update" ]] || [[ $* =~ "outdated" ]]; then
+    sketchybar --trigger brew_update
+  fi
+}
+
+plugins=(git git-prompt zsh-fzf-history-search zsh-autosuggestions  fast-syntax-highlighting mercurial better-virtualenv transportstatus multirust idasen-control zsh-syntax-highlighting direnv)
+
+ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE="20"
+ZSH_AUTOSUGGEST_USE_ASYNC=1
+ZSH_THEME="mitsuhiko"
+ZSH_CUSTOM=$HOME/.config/zsh/custom/
+export VCPKG_ROOT="$HOME/vcpkg"
+export EDITOR="nvim"
+export GITHUB_USERNAME="jmtzt"
+export ZSH="$HOME/.oh-my-zsh"
+export XDG_CONFIG_HOME="$HOME/.config/"
+export DOCKER_DEFAULT_PLATFORM="linux/arm64"
+# source ~/.bash_profile
+
+DISABLE_AUTO_UPDATE="true"
+HIST_STAMPS="yyyy-mm-dd"
+
+source $ZSH/oh-my-zsh.sh
+
+
+unsetopt share_history
+
+export SSH_AUTH_SOCK=~/Library/Group\ Containers/2BUA8C4S2C.com.1password/t/agent.sock
+export GRADLE_USER_HOME="$HOME/.gradle"
+export GRADLE_HOME="$HOME/.gradle"
+
+export LC_ALL=en_US.UTF-8
+export PATH=/Users/jmtzt/Downloads/google-cloud-sdk/bin:\
+/Users/jmtzt/.config/tmux/tmux-sessionizer.sh:\
+/Users/jmtzt/.cargo/bin:\
+/Users/jmtzt/.local/bin:\
+/opt/apache-maven-3.8.6/bin:\
+/opt/homebrew/Cellar/apache-spark/3.5.1/libexec/bin:\
+/opt/homebrew/Cellar/apache-spark/3.5.1/libexec/python:\
+/Users/jmtzt/miniforge3/envs/haltbar/bin:\
+/opt/homebrew/bin:\
+/opt/homebrew/sbin:\
+/usr/local/bin:\
+/System/Cryptexes/App/usr/bin:\
+/usr/bin:\
+/bin:\
+/usr/sbin:\
+/sbin:\
+/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:\
+/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:\
+/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:\
+/opt/X11/bin:\
+/Library/TeX/texbin:\
+/Library/Frameworks/Mono.framework/Versions/Current/Commands:\
+/Users/jmtzt/opt/anaconda3/condabin:\
+/opt/homebrew/opt/fzf/bin
+export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
+
+export PATH=$PATH:$VCPKG_ROOT
+# bind esc + ,
+# autoload -Uz copy-earlier-word
+# zle -N copy-earlier-word
+# bindkey '\e,' copy-earlier-word
+
+export HOMEBREW_NO_AUTO_UPDATE=1
+
+[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+
+alias lzd='lazydocker'
+
+eval $(thefuck --alias)
+
+# The next line updates PATH for the Google Cloud SDK.
+#if [ -f '/Users/jmtzt/Downloads/google-cloud-sdk/path.zsh.inc' ]; then . '/Users/jmtzt/Downloads/google-cloud-sdk/path.zsh.inc'; fi
+
+# The next line enables shell command completion for gcloud.
+#if [ -f '/Users/jmtzt/Downloads/google-cloud-sdk/completion.zsh.inc' ]; then . '/Users/jmtzt/Downloads/google-cloud-sdk/completion.zsh.inc'; fi
+
+eval "$(zoxide init --cmd cd zsh)"
+source $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+source $(brew --prefix)/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+export ZSH=/Users/$(whoami)/.oh-my-zsh
+
+# Added by LM Studio CLI (lms)
+export PATH="$PATH:/Users/jmtzt/.cache/lm-studio/bin"
+
+# opencode
+export PATH=/Users/jmtzt/.opencode/bin:$PATH
+
+# Android studio
+export ANDROID_HOME=$HOME/Library/Android/sdk
+export ANDROID_SDK_ROOT=$HOME/Library/Android/sdk
+export PATH=$PATH:$ANDROID_HOME/emulator
+export PATH=$PATH:$ANDROID_HOME/tools
+export PATH=$PATH:$ANDROID_HOME/tools/bin
+export PATH=$PATH:$ANDROID_HOME/platform-tools
+export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin
+export PATH="/Users/jmtzt/.nvm/versions/node/v18.20.8/bin:$PATH"
+
+. "$HOME/.local/bin/env"
+
+#THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
+export SDKMAN_DIR="$HOME/.sdkman"
+[[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
+export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
+export PATH=$(gem environment gemdir)/bin:$PATH
+eval "$(direnv hook zsh)"
