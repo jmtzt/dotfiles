@@ -37,6 +37,21 @@
         name: "{{ remote_regular_user }}"
         shell: /usr/bin/zsh
 
+    - name: Add Neovim stable PPA
+      ansible.builtin.apt_repository:
+        repo: ppa:neovim-ppa/stable
+        state: present
+        filename: neovim-ppa
+
+    - name: Update apt cache after adding Neovim PPA
+      ansible.builtin.apt:
+        update_cache: yes
+
+    - name: Install Neovim from PPA
+      ansible.builtin.apt:
+        name: neovim
+        state: present
+
     - name: Setup fonts, Tmux, and apply dotfiles
       become_user: "{{ remote_regular_user }}"
       block:
@@ -139,17 +154,3 @@
             depth: 1
             update: yes
 
-        - name: Add Neovim stable PPA
-          ansible.builtin.apt_repository:
-            repo: ppa:neovim-ppa/stable
-            state: present
-            filename: neovim-ppa
-
-        - name: Update apt cache after adding Neovim PPA
-          ansible.builtin.apt:
-            update_cache: yes
-
-        - name: Install Neovim from PPA
-          ansible.builtin.apt:
-            name: neovim
-            state: present
