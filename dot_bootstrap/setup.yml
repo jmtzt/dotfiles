@@ -124,10 +124,3 @@
             dest: ~/.oh-my-zsh/custom/plugins/fast-syntax-highlighting
             depth: 1
             update: true
-
-        - name: Install better-virtualenv plugin
-          ansible.builtin.git:
-            repo: https://github.com/benvan/sd-zsh-better-virtualenv.git
-            dest: ~/.oh-my-zsh/custom/plugins/better-virtualenv
-            depth: 1
-            update: true
