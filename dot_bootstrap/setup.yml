@@ -10,8 +10,8 @@
       set_fact:
         remote_regular_user: "{{ ansible_env.SUDO_USER or ansible_user_id }}"
 
+    # Run this whole block AS the regular user, not root
     - name: Install Neovim under ~/.local (user scope)
-      become: false
       become_user: "{{ remote_regular_user }}"
       block:
         - name: Ensure ~/.local/{bin,opt} exist
@@ -31,7 +31,7 @@
             force: true
           register: nvim_tar
 
-        - name: Remove previous extracted nvim
+        - name: Remove previous extracted nvim (if new tarball downloaded)
           ansible.builtin.file:
             path: "~/.local/opt/nvim"
             state: absent
@@ -58,7 +58,6 @@
 
         - name: Verify nvim is runnable and new enough
           ansible.builtin.command: "~/.local/bin/nvim --version"
-          register: nvim_version
           changed_when: false
 
     - name: Install packages
