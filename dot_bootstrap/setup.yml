@@ -154,3 +154,10 @@
             url: https://github.com/neovim/neovim/releases/latest/download/nvim.appimage
             dest: ~/.local/bin/nvim
             mode: "0755"
+
+        - name: Symlink nvim binary into ~/.local/bin
+          file:
+            src: ~/.local/nvim/nvim
+            dest: ~/.local/bin/nvim
+            state: link
+            force: true
