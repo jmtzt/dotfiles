@@ -149,33 +149,8 @@
             - "~/.local/bin"
             - "~/.local/opt"
 
-        - name: Download latest Neovim release (Linux x86_64)
+        - name: Download latest Neovim AppImage
           get_url:
-            url: https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz
-            dest: /tmp/nvim-linux-x86_64.tar.gz
-            mode: "0644"
-
-        - name: Remove previous Neovim dir (if any)
-          file:
-            path: "~/.local/opt/nvim-linux-x86_64"
-            state: absent
-
-        - name: Extract Neovim to ~/.local/opt
-          unarchive:
-            src: /tmp/nvim-linux-x86_64.tar.gz
-            dest: "~/.local/opt"
-            remote_src: true
-
-        - name: Create stable nvim symlink
-          file:
-            src: "~/.local/opt/nvim-linux-x86_64"
-            dest: "~/.local/opt/nvim"
-            state: link
-            force: true
-
-        - name: Symlink nvim binary into ~/.local/bin
-          file:
-            src: "~/.local/opt/nvim/bin/nvim"
-            dest: "~/.local/bin/nvim"
-            state: link
-            force: true
+            url: https://github.com/neovim/neovim/releases/latest/download/nvim.appimage
+            dest: ~/.local/bin/nvim
+            mode: "0755"
