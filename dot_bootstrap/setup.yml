@@ -103,11 +103,9 @@
             dest: "~/.config/zsh/custom/plugins/{{ item.name }}"
             update: true
           loop:
-            - { name: zsh-autosuggestions,       repo: "https://github.com/zsh-users/zsh-autosuggestions" }
-            - { name: zsh-syntax-highlighting,   repo: "https://github.com/zsh-users/zsh-syntax-highlighting" }
-            - { name: zsh-fzf-history-search,    repo: "https://github.com/joshskidmore/zsh-fzf-history-search" }
-            - { name: fast-syntax-highlighting,  repo: "https://github.com/zdharma-continuum/fast-syntax-highlighting" }
-            - { name: better-virtualenv,         repo: "https://github.com/benvan/sd-zsh-better-virtualenv" }
-            - { name: mercurial,                 repo: "https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/mercurial" }
-            - { name: direnv,                    repo: "https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/direnv" }
+            - { name: zsh-autosuggestions,       repo: "https://github.com/zsh-users/zsh-autosuggestions.git" }
+            - { name: zsh-syntax-highlighting,   repo: "https://github.com/zsh-users/zsh-syntax-highlighting.git" }
+            - { name: zsh-fzf-history-search,    repo: "https://github.com/joshskidmore/zsh-fzf-history-search.git" }
+            - { name: fast-syntax-highlighting,  repo: "https://github.com/zdharma-continuum/fast-syntax-highlighting.git" }
+            - { name: better-virtualenv,         repo: "https://github.com/benvan/sd-zsh-better-virtualenv.git" }
 
