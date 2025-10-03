@@ -56,10 +56,6 @@
             state: link
             force: true
 
-        - name: Verify nvim is runnable and new enough
-          ansible.builtin.command: "~/.local/bin/nvim --version"
-          changed_when: false
-
     - name: Install packages
       apt:
         name:
