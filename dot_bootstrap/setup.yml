@@ -92,11 +92,34 @@
             state: link
             force: yes
 
-        - name: Copy custom tmux config from chezmoi source  # 🔽 NEW TASK
+        - name: Copy custom tmux config from chezmoi source
           ansible.builtin.copy:
             src: "~/.local/share/chezmoi/dot_tmux.conf.local"
             dest: "~/.tmux.conf.local"
             remote_src: yes
             force: yes
             mode: '0644'
+
+        - name: Ensure custom zsh plugin/theme dirs exist
+          file:
+            path: "{{ item }}"
+            state: directory
+            mode: "0755"
+          loop:
+            - "{{ home_dir }}/.config/zsh/custom/plugins"
+            - "{{ home_dir }}/.config/zsh/custom/themes"
+
+        - name: Install zsh plugins into ~/.config/zsh/custom/plugins
+          git:
+            repo: "{{ item.repo }}"
+            dest: "{{ home_dir }}/.config/zsh/custom/plugins/{{ item.name }}"
+            update: true
+          loop:
+            - { name: zsh-autosuggestions,       repo: "https://github.com/zsh-users/zsh-autosuggestions" }
+            - { name: zsh-syntax-highlighting,   repo: "https://github.com/zsh-users/zsh-syntax-highlighting" }
+            - { name: zsh-fzf-history-search,    repo: "https://github.com/joshskidmore/zsh-fzf-history-search" }
+            - { name: fast-syntax-highlighting,  repo: "https://github.com/zdharma-continuum/fast-syntax-highlighting" }
+            - { name: better-virtualenv,         repo: "https://github.com/benvan/sd-zsh-better-virtualenv" }
+            - { name: mercurial,                 repo: "https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/mercurial" }
+            - { name: direnv,                    repo: "https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/direnv" }
 
