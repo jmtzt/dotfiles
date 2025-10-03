@@ -139,33 +139,17 @@
             depth: 1
             update: yes
 
-        - name: Ensure ~/.local/{bin,nvim} exist
-          file:
-            path: "{{ item }}"
-            state: directory
-            mode: "0755"
-          loop:
-            - "~/.local/bin"
-            - "~/.local/nvim"
+        - name: Add Neovim stable PPA
+          ansible.builtin.apt_repository:
+            repo: ppa:neovim-ppa/stable
+            state: present
+            filename: neovim-ppa
 
-        - name: Download latest Neovim AppImage
-          get_url:
-            url: https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.appimage
-            dest: ~/.local/nvim/nvim.appimage
-            mode: "0755"
+        - name: Update apt cache after adding Neovim PPA
+          ansible.builtin.apt:
+            update_cache: yes
 
-        - name: Extract Neovim AppImage (no FUSE required)
-          shell: |
-            cd ~/.local/nvim
-            ./nvim.appimage --appimage-extract
-            mv squashfs-root/* .
-            rm -rf squashfs-root
-          args:
-            creates: ~/.local/nvim/AppRun
-
-        - name: Symlink extracted Neovim binary into ~/.local/bin
-          file:
-            src: ~/.local/nvim/AppRun
-            dest: ~/.local/bin/nvim
-            state: link
-            force: true
+        - name: Install Neovim from PPA
+          ansible.builtin.apt:
+            name: neovim
+            state: present
