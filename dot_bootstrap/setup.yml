@@ -43,17 +43,26 @@
         state: directory
         mode: "0755"
 
-    - name: Download prebuilt Neovim binary from GitHub release
+    - name: Download Neovim binary tarball from GitHub release
       get_url:
         url: "https://github.com/jmtzt/dotfiles/releases/download/nvim-0.12.0-dev-glibc231/nvim-linux-x86_64-glibc231.tar.gz"
-        dest: "~/nvim.tar.gz"
+        dest: "~/.local/opt/nvim.tar.gz"
         mode: "0644"
+        force: true
 
-    - name: Extract Neovim binary
+    - name: Extract Neovim binary tarball
       unarchive:
-        src: "~/nvim.tar.gz"
-        dest: "~/.local/bin"
+        src: "~/.local/opt/nvim.tar.gz"
+        dest: "~/.local/opt/nvim"
         remote_src: yes
+        extra_opts: [--strip-components=1]
+
+    - name: Symlink nvim into ~/.local/bin
+      file:
+        src: "~/.local/opt/nvim/bin/nvim"
+        dest: "~/.local/bin/nvim"
+        state: link
+        force: true
 
     - name: Ensure nvim is executable
       file:
