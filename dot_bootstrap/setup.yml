@@ -131,3 +131,11 @@
             dest: ~/.oh-my-zsh/custom/plugins/fast-syntax-highlighting
             depth: 1
             update: true
+
+        - name: Clone Neovim config repo
+          ansible.builtin.git:
+            repo: https://github.com/jmtzt/vim.git
+            dest: ~/.config/nvim
+            version: main
+            depth: 1
+            update: yes
