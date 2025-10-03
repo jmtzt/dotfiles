@@ -99,6 +99,7 @@ function brew() {
   # Linux Android SDK (if installed)
   export ANDROID_HOME="$HOME/Android/Sdk"
   export ANDROID_SDK_ROOT="$ANDROID_HOME"
+  export PATH="$PATH:/opt/nvim-linux-x86_64/bin"
   [ -d "$ANDROID_HOME" ] && export PATH="$PATH:$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools:$ANDROID_HOME/cmdline-tools/latest/bin"
 {{ end }}
 

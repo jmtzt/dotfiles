@@ -17,7 +17,6 @@
           - curl
           - htop
           - vim
-          - neovim
           - build-essential
           - ripgrep
           - zsh
@@ -139,3 +138,27 @@
             version: main
             depth: 1
             update: yes
+
+        - name: Download latest Neovim release
+          get_url:
+            url: https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz
+            dest: /tmp/nvim-linux-x86_64.tar.gz
+            mode: "0644"
+
+        - name: Remove old Neovim installation
+          file:
+            path: /opt/nvim-linux-x86_64
+            state: absent
+
+        - name: Extract Neovim to /opt
+          unarchive:
+            src: /tmp/nvim-linux-x86_64.tar.gz
+            dest: /opt
+            remote_src: yes
+
+        - name: Ensure Neovim is in PATH
+          lineinfile:
+            path: ~/.zshrc
+            regexp: '^export PATH=.*/opt/nvim-linux-x86_64/bin'
+            line: 'export PATH="$PATH:/opt/nvim-linux-x86_64/bin"'
+            insertafter: EOF
