@@ -46,12 +46,12 @@
     - name: Download prebuilt Neovim binary from GitHub release
       get_url:
         url: "https://github.com/jmtzt/dotfiles/releases/download/nvim-0.12.0-dev-glibc231/nvim-linux-x86_64-glibc231.tar.gz"
-        dest: "/tmp/nvim.tar.gz"
+        dest: "~/nvim.tar.gz"
         mode: "0644"
 
     - name: Extract Neovim binary
       unarchive:
-        src: "/tmp/nvim.tar.gz"
+        src: "~/nvim.tar.gz"
         dest: "~/.local/bin"
         remote_src: yes
 
