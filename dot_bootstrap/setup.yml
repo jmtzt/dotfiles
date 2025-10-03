@@ -139,26 +139,43 @@
             depth: 1
             update: yes
 
-        - name: Download latest Neovim release
+
+        - name: Ensure ~/.local/{bin,opt} exist
+          file:
+            path: "{{ item }}"
+            state: directory
+            mode: "0755"
+          loop:
+            - "~/.local/bin"
+            - "~/.local/opt"
+
+        - name: Download latest Neovim release (Linux x86_64)
           get_url:
             url: https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz
             dest: /tmp/nvim-linux-x86_64.tar.gz
             mode: "0644"
 
-        - name: Remove old Neovim installation
+        - name: Remove previous Neovim dir (if any)
           file:
-            path: /opt/nvim-linux-x86_64
+            path: "~/.local/opt/nvim-linux-x86_64"
             state: absent
 
-        - name: Extract Neovim to /opt
+        - name: Extract Neovim to ~/.local/opt
           unarchive:
             src: /tmp/nvim-linux-x86_64.tar.gz
-            dest: /opt
-            remote_src: yes
+            dest: "~/.local/opt"
+            remote_src: true
 
-        - name: Ensure Neovim is in PATH
-          lineinfile:
-            path: ~/.zshrc
-            regexp: '^export PATH=.*/opt/nvim-linux-x86_64/bin'
-            line: 'export PATH="$PATH:/opt/nvim-linux-x86_64/bin"'
-            insertafter: EOF
+        - name: Create stable nvim symlink
+          file:
+            src: "~/.local/opt/nvim-linux-x86_64"
+            dest: "~/.local/opt/nvim"
+            state: link
+            force: true
+
+        - name: Symlink nvim binary into ~/.local/bin
+          file:
+            src: "~/.local/opt/nvim/bin/nvim"
+            dest: "~/.local/bin/nvim"
+            state: link
+            force: true
