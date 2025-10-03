@@ -139,20 +139,19 @@
             depth: 1
             update: yes
 
-
-        - name: Ensure ~/.local/{bin,opt} exist
+        - name: Ensure ~/.local/{bin,nvim} exist
           file:
             path: "{{ item }}"
             state: directory
             mode: "0755"
           loop:
             - "~/.local/bin"
-            - "~/.local/opt"
+            - "~/.local/nvim"
 
         - name: Download latest Neovim AppImage
           get_url:
             url: https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.appimage
-            dest: ~/.local/bin/nvim
+            dest: ~/.local/nvim/nvim
             mode: "0755"
 
         - name: Symlink nvim binary into ~/.local/bin
