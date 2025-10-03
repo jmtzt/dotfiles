@@ -10,6 +10,48 @@
       set_fact:
         remote_regular_user: "{{ ansible_env.SUDO_USER or ansible_user_id }}"
 
+    - name: Install Neovim under ~/.local (user scope)
+      become: false
+      become_user: "{{ remote_regular_user }}"
+      block:
+        - name: Ensure ~/.local/{bin,opt} exist
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: directory
+            mode: "0755"
+          loop:
+            - "~/.local/bin"
+            - "~/.local/opt"
+
+        - name: Download Neovim binary tarball from GitHub release
+          ansible.builtin.get_url:
+            url: "https://github.com/jmtzt/dotfiles/releases/download/nvim-0.12.0-dev-glibc231/nvim-linux-x86_64-glibc231.tar.gz"
+            dest: "~/.local/opt/nvim.tar.gz"
+            mode: "0644"
+            force: true
+
+        - name: Create ~/.local/opt/nvim (extract target)
+          ansible.builtin.file:
+            path: "~/.local/opt/nvim"
+            state: directory
+            mode: "0755"
+
+        - name: Extract Neovim binary tarball (contains bin/ and usr/)
+          ansible.builtin.unarchive:
+            src: "~/.local/opt/nvim.tar.gz"
+            dest: "~/.local/opt/nvim"
+            remote_src: true
+            # no strip-components: tarball root already has bin/ and usr/
+          args:
+            creates: "~/.local/opt/nvim/bin/nvim"
+
+        - name: Symlink nvim into ~/.local/bin
+          ansible.builtin.file:
+            src: "~/.local/opt/nvim/bin/nvim"
+            dest: "~/.local/bin/nvim"
+            state: link
+            force: true
+
     - name: Install packages
       apt:
         name:
@@ -36,39 +78,6 @@
       user:
         name: "{{ remote_regular_user }}"
         shell: /usr/bin/zsh
-
-    - name: Ensure ~/.local/bin exists
-      file:
-        path: "~/.local/bin"
-        state: directory
-        mode: "0755"
-
-    - name: Download Neovim binary tarball from GitHub release
-      get_url:
-        url: "https://github.com/jmtzt/dotfiles/releases/download/nvim-0.12.0-dev-glibc231/nvim-linux-x86_64-glibc231.tar.gz"
-        dest: "~/.local/opt/nvim.tar.gz"
-        mode: "0644"
-        force: true
-
-    - name: Extract Neovim binary tarball
-      unarchive:
-        src: "~/.local/opt/nvim.tar.gz"
-        dest: "~/.local/opt/nvim"
-        remote_src: yes
-        extra_opts: [--strip-components=1]
-
-    - name: Symlink nvim into ~/.local/bin
-      file:
-        src: "~/.local/opt/nvim/bin/nvim"
-        dest: "~/.local/bin/nvim"
-        state: link
-        force: true
-
-    - name: Ensure nvim is executable
-      file:
-        path: "~/.local/bin/nvim"
-        mode: "0755"
-        state: file
 
     - name: Setup fonts, Tmux, and apply dotfiles
       become_user: "{{ remote_regular_user }}"
