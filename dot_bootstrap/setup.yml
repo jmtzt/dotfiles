@@ -29,6 +29,8 @@
           - libssl-dev
           - luarocks
           - fd-find
+          - direnv
+          - tree
         state: present
 
     - name: Change shell to zsh
