@@ -154,9 +154,19 @@
             dest: ~/.local/nvim/nvim
             mode: "0755"
 
-        - name: Symlink nvim binary into ~/.local/bin
+
+        - name: Extract Neovim AppImage (no FUSE required)
+          shell: |
+            cd ~/.local/nvim
+            ./nvim.appimage --appimage-extract
+            mv squashfs-root/* .
+            rm -rf squashfs-root
+          args:
+            creates: ~/.local/nvim/AppRun
+
+        - name: Symlink extracted Neovim binary into ~/.local/bin
           file:
-            src: ~/.local/nvim/nvim
+            src: ~/.local/nvim/AppRun
             dest: ~/.local/bin/nvim
             state: link
             force: true
