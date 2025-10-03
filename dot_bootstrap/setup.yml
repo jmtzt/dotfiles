@@ -130,28 +130,28 @@
         - name: Install zsh-autosuggestions plugin
           ansible.builtin.git:
             repo: https://github.com/zsh-users/zsh-autosuggestions.git
-            dest: ~/.oh-my-zsh/custom/plugins/zsh-autosuggestions
+            dest: ~/.config/zsh/custom/plugins/zsh-autosuggestions
             depth: 1
             update: true
 
         - name: Install zsh-syntax-highlighting plugin
           ansible.builtin.git:
             repo: https://github.com/zsh-users/zsh-syntax-highlighting.git
-            dest: ~/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
+            dest: ~/.config/zsh/custom/plugins/zsh-syntax-highlighting
             depth: 1
             update: true
 
         - name: Install zsh-fzf-history-search plugin
           ansible.builtin.git:
             repo: https://github.com/joshskidmore/zsh-fzf-history-search.git
-            dest: ~/.oh-my-zsh/custom/plugins/zsh-fzf-history-search
+            dest: ~/.config/zsh/custom/plugins/zsh-fzf-history-search
             depth: 1
             update: true
 
         - name: Install fast-syntax-highlighting plugin
           ansible.builtin.git:
             repo: https://github.com/zdharma-continuum/fast-syntax-highlighting.git
-            dest: ~/.oh-my-zsh/custom/plugins/fast-syntax-highlighting
+            dest: ~/.config/zsh/custom/plugins/fast-syntax-highlighting
             depth: 1
             update: true
 
