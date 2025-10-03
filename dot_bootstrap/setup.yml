@@ -7,7 +7,7 @@
 
   tasks:
     - name: Get my user
-      set_fact: # CHANGED: Used short name
+      set_fact:
         remote_regular_user: "{{ ansible_env.SUDO_USER or ansible_user_id }}"
 
     - name: Install packages
@@ -32,7 +32,7 @@
         state: present
 
     - name: Change shell to zsh
-      user: # CHANGED: Used short name
+      user:
         name: "{{ remote_regular_user }}"
         shell: /usr/bin/zsh
 
@@ -40,32 +40,32 @@
       become_user: "{{ remote_regular_user }}"
       block:
         - name: Ensure fonts directory exists
-          file: # CHANGED: Used short name
+          file:
             path: "~/.fonts"
             state: directory
             mode: "0755"
 
         - name: Check if Jetbrains Mono exists
-          stat: # CHANGED: Used 'stat' module for better idempotency
+          stat:
             path: "~/.fonts/JetBrainsMonoNerdFontMono-Regular.ttf"
           register: jetbrains_mono_exists
 
         - name: Download and unpack Jetbrains mono font
           when: not jetbrains_mono_exists.stat.exists
-          unarchive: # CHANGED: Used short name
+          unarchive:
             src: https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/JetBrainsMono.zip
             dest: "~/.fonts/"
             remote_src: true
 
         - name: Clone Oh My Tmux repository
-          git: # CHANGED: Used short name 'git'
+          git:
             repo: 'https://github.com/gpakosz/.tmux.git'
             dest: "~/.tmux"
             clone: yes
             update: yes
 
         - name: Create symlink for the main .tmux.conf
-          file: # CHANGED: Used short name
+          file:
             src: "~/.tmux/.tmux.conf"
             dest: "~/.tmux.conf"
             state: link
