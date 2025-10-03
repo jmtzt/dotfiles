@@ -37,25 +37,29 @@
         name: "{{ remote_regular_user }}"
         shell: /usr/bin/zsh
 
-    - name: Clone Neovim source
-      git:
-        repo: https://github.com/neovim/neovim.git
-        dest: /tmp/neovim
-        version: stable
-        depth: 1
-        update: yes
+    - name: Ensure ~/.local/bin exists
+      file:
+        path: "~/.local/bin"
+        state: directory
+        mode: "0755"
 
-    - name: Build Neovim from source
-      command: make CMAKE_BUILD_TYPE=Release
-      args:
-        chdir: /tmp/neovim
-      environment:
-        PATH: "/usr/local/bin:/usr/bin:/bin"
+    - name: Download prebuilt Neovim binary from GitHub release
+      get_url:
+        url: "https://github.com/jmtzt/dotfiles/releases/download/nvim-0.12.0-dev-glibc231/nvim-linux-x86_64-glibc231.tar.gz"
+        dest: "/tmp/nvim.tar.gz"
+        mode: "0644"
 
-    - name: Install Neovim from source
-      command: make install
-      args:
-        chdir: /tmp/neovim
+    - name: Extract Neovim binary
+      unarchive:
+        src: "/tmp/nvim.tar.gz"
+        dest: "~/.local/bin"
+        remote_src: yes
+
+    - name: Ensure nvim is executable
+      file:
+        path: "~/.local/bin/nvim"
+        mode: "0755"
+        state: file
 
     - name: Setup fonts, Tmux, and apply dotfiles
       become_user: "{{ remote_regular_user }}"
