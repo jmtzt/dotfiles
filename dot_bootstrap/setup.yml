@@ -37,20 +37,25 @@
         name: "{{ remote_regular_user }}"
         shell: /usr/bin/zsh
 
-    - name: Add Neovim stable PPA
-      ansible.builtin.apt_repository:
-        repo: ppa:neovim-ppa/stable
-        state: present
-        filename: neovim-ppa
+    - name: Clone Neovim source
+      git:
+        repo: https://github.com/neovim/neovim.git
+        dest: /tmp/neovim
+        version: stable
+        depth: 1
+        update: yes
 
-    - name: Update apt cache after adding Neovim PPA
-      ansible.builtin.apt:
-        update_cache: yes
+    - name: Build Neovim from source
+      command: make CMAKE_BUILD_TYPE=Release
+      args:
+        chdir: /tmp/neovim
+      environment:
+        PATH: "/usr/local/bin:/usr/bin:/bin"
 
-    - name: Install Neovim from PPA
-      ansible.builtin.apt:
-        name: neovim
-        state: present
+    - name: Install Neovim from source
+      command: make install
+      args:
+        chdir: /tmp/neovim
 
     - name: Setup fonts, Tmux, and apply dotfiles
       become_user: "{{ remote_regular_user }}"
