@@ -112,6 +112,22 @@
       apt:
         update_cache: yes
 
+    - name: Add Git PPA repository
+      apt_repository:
+        repo: ppa:git-core/ppa
+        state: present
+      register: git_ppa_added
+
+    - name: Update package cache after adding Git PPA
+      apt:
+        update_cache: yes
+      when: git_ppa_added.changed
+
+    - name: Install/upgrade Git to latest version
+      apt:
+        name: git
+        state: latest
+
     - name: Change shell to zsh
       user:
         name: "{{ remote_regular_user }}"
