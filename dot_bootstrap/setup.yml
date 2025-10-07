@@ -76,6 +76,7 @@
           - fd-find
           - direnv
           - tree
+          - software-properties-common
         state: present
 
     - name: Update system packages
