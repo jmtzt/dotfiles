@@ -129,6 +129,34 @@
         name: git
         state: latest
 
+    - name: Ensure OpenSSH client is present (needed for ssh signing)
+      apt:
+        name: openssh-client
+        state: present
+
+    # Configure Git for the regular user (not root)
+    - name: Configure global Git identity and SSH signing
+      become_user: "{{ remote_regular_user }}"
+      block:
+        - name: Set user.name / user.email / user.signingkey
+          community.general.git_config:
+            name: "{{ item.name }}"
+            value: "{{ item.value }}"
+            scope: global
+          loop:
+            - { name: "user.name",      value: "Joao Tozato" }
+            - { name: "user.email",     value: "joao.tozato@voize.de" }
+            - { name: "user.signingkey", value: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIN52Pm/N1JReKh1ysY1h3xqP4XX6VxVk4H4ropc9vP52" }
+
+        - name: Set gpg.format to ssh and enable commit signing
+          community.general.git_config:
+            name: "{{ item.name }}"
+            value: "{{ item.value }}"
+            scope: global
+          loop:
+            - { name: "gpg.format",   value: "ssh" }
+            - { name: "commit.gpgsign", value: "true" }
+
     - name: Change shell to zsh
       user:
         name: "{{ remote_regular_user }}"
