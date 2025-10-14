@@ -89,11 +89,15 @@
         force: true
       notify: Convert NodeSource key to keyring
 
-    - name: Ensure NodeSource GPG keyring exists (idempotent)
+    - name: Convert NodeSource key to keyring
       ansible.builtin.command:
-        cmd: "gpg --dearmor -o {{ nodesource_key_gpg }} {{ nodesource_key_asc }}"
+        argv:
+          - gpg
+          - --dearmor
+          - -o
+          - "{{ nodesource_key_gpg }}"
+          - "{{ nodesource_key_asc }}"
         creates: "{{ nodesource_key_gpg }}"
-      notify: Remove NodeSource ASCII key
 
     - name: Add NodeSource repository (Node 22)
       ansible.builtin.apt_repository:
