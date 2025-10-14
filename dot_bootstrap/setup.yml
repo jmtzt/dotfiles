@@ -202,8 +202,7 @@
     ###########################################################################
     # User-scope: Neovim under ~/.local
     ###########################################################################
-    - name: Install Neovim under ~/.local
-      become: true
+    - name: Install Neovim under ~/.local (user scope)
       become_user: "{{ remote_regular_user }}"
       block:
         - name: Ensure ~/.local/{bin,opt} exist
@@ -212,35 +211,53 @@
             state: directory
             mode: "0755"
           loop:
-            - "{{ lookup('ansible.builtin.env', 'HOME') }}/.local/bin"
-            - "{{ lookup('ansible.builtin.env', 'HOME') }}/.local/opt"
+            - "~/.local/bin"
+            - "~/.local/opt"
 
-        - name: Download Neovim tarball
+        - name: Download Neovim binary tarball from GitHub release
           ansible.builtin.get_url:
             url: "https://github.com/jmtzt/dotfiles/releases/download/nvim-0.12.0-dev-glibc231/nvim-linux-x86_64-glibc231.tar.gz"
-            dest: "{{ lookup('ansible.builtin.env', 'HOME') }}/.local/opt/nvim.tar.gz"
+            dest: "~/.local/opt/nvim.tar.gz"
             mode: "0644"
             force: true
           register: nvim_tar
-          notify: Remove previous extracted nvim
 
-        - name: Create extraction dir
+        - name: Remove previous extracted nvim (if new tarball downloaded)
           ansible.builtin.file:
-            path: "{{ lookup('ansible.builtin.env', 'HOME') }}/.local/opt/nvim"
+            path: "~/.local/opt/nvim"
+            state: absent
+          when: nvim_tar.changed
+
+        - name: Create ~/.local/opt/nvim (extract target)
+          ansible.builtin.file:
+            path: "~/.local/opt/nvim"
             state: directory
             mode: "0755"
 
-        - name: Extract Neovim tarball
+        - name: Extract Neovim tarball (no assumptions about layout)
           ansible.builtin.unarchive:
-            src: "{{ lookup('ansible.builtin.env', 'HOME') }}/.local/opt/nvim.tar.gz"
-            dest: "{{ lookup('ansible.builtin.env', 'HOME') }}/.local/opt/nvim"
+            src: "~/.local/opt/nvim.tar.gz"
+            dest: "~/.local/opt/nvim"
             remote_src: true
             extra_opts: [--no-same-owner]
 
-        - name: Symlink nvim
+        - name: Find nvim binary under ~/.local/opt/nvim
+          ansible.builtin.find:
+            paths: "~/.local/opt/nvim"
+            recurse: true
+            patterns: "nvim"
+            file_type: file
+          register: nvim_find
+
+        - name: Fail if nvim binary not found
+          ansible.builtin.fail:
+            msg: "Neovim binary not found after extraction."
+          when: (nvim_find.files | selectattr('path','search','/bin/nvim$') | list | length) == 0
+
+        - name: Symlink nvim into ~/.local/bin (from detected path)
           ansible.builtin.file:
-            src: "{{ lookup('ansible.builtin.env', 'HOME') }}/.local/opt/nvim/bin/nvim"
-            dest: "{{ lookup('ansible.builtin.env', 'HOME') }}/.local/bin/nvim"
+            src: "{{ (nvim_find.files | selectattr('path','search','/bin/nvim$') | map(attribute='path') | first) }}"
+            dest: "~/.local/bin/nvim"
             state: link
             force: true
 
