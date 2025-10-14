@@ -15,8 +15,8 @@
     nodesource_repo_line: "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_22.x nodistro main"
 
     # Pin git clones (use tags/SHAs to satisfy ansible-lint latest[git])
-    ohmyzsh_version: master        # e.g., v2.0.0 or a commit SHA
-    tmux_repo_version: master      # pin to a tag/sha to avoid latest[git]
+    ohmyzsh_version: master
+    tmux_repo_version: master
     zsh_autosuggest_version: master
     zsh_syntax_highlight_version: master
     zsh_fzf_hist_version: master
@@ -95,7 +95,6 @@
         cmd: "gpg --dearmor -o {{ nodesource_key_gpg }} {{ nodesource_key_asc }}"
         creates: "{{ nodesource_key_gpg }}"
       notify: Remove NodeSource ASCII key
-      # This will usually be skipped (creates), the handler runs clean-up.
 
     - name: Add NodeSource repository (Node 22)
       ansible.builtin.apt_repository:
@@ -118,38 +117,38 @@
         name: git
         state: present
 
-    ############################################################################
+    ###########################################################################
     # Configure Git for the regular user
     ###########################################################################
-    #- name: Configure global Git identity and signing
-  become: true
-  become_user: "{{ remote_regular_user }}"
-  block:
-    - name: Ensure ~/.gitconfig exists
-      ansible.builtin.file:
-        path: "{{ lookup('ansible.builtin.env', 'HOME') }}/.gitconfig"
-        state: touch
-        owner: "{{ remote_regular_user }}"
-        group: "{{ remote_regular_user }}"
-        mode: "0644"
+    - name: Configure global Git identity and signing
+      become: true
+      become_user: "{{ remote_regular_user }}"
+      block:
+        - name: Ensure ~/.gitconfig exists
+          ansible.builtin.file:
+            path: "{{ lookup('ansible.builtin.env', 'HOME') }}/.gitconfig"
+            state: touch
+            owner: "{{ remote_regular_user }}"
+            group: "{{ remote_regular_user }}"
+            mode: "0644"
 
-    - name: Write Git config (managed block)
-      ansible.builtin.blockinfile:
-        path: "{{ lookup('ansible.builtin.env', 'HOME') }}/.gitconfig"
-        marker: "# {mark} ANSIBLE MANAGED GIT CONFIG"
-        create: true
-        owner: "{{ remote_regular_user }}"
-        group: "{{ remote_regular_user }}"
-        mode: "0644"
-        block: |
-          [user]
-            name = Joao Tozato
-            email = joao.tozato@voize.de
-            signingkey = ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIN52Pm/N1JReKh1ysY1h3xqP4XX6VxVk4H4ropc9vP52
-          [gpg]
-            format = ssh
-          [commit]
-            gpgsign = true
+        - name: Write Git config (managed block)
+          ansible.builtin.blockinfile:
+            path: "{{ lookup('ansible.builtin.env', 'HOME') }}/.gitconfig"
+            marker: "# {mark} ANSIBLE MANAGED GIT CONFIG"
+            create: true
+            owner: "{{ remote_regular_user }}"
+            group: "{{ remote_regular_user }}"
+            mode: "0644"
+            block: |
+              [user]
+                name = Joao Tozato
+                email = joao.tozato@voize.de
+                signingkey = ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIN52Pm/N1JReKh1ysY1h3xqP4XX6VxVk4H4ropc9vP52
+              [gpg]
+                format = ssh
+              [commit]
+                gpgsign = true
 
     ###########################################################################
     # Switch shell to zsh
@@ -266,43 +265,16 @@
             - "{{ lookup('ansible.builtin.env', 'HOME') }}/.config/zsh/custom/plugins"
             - "{{ lookup('ansible.builtin.env', 'HOME') }}/.config/zsh/custom/themes"
 
-        - name: Install Oh My Zsh
+        - name: Install Oh My Zsh and plugins
+          loop:
+            - { repo: "https://github.com/ohmyzsh/ohmyzsh.git", dest: "~/.oh-my-zsh" }
+            - { repo: "https://github.com/zsh-users/zsh-autosuggestions.git", dest: "~/.config/zsh/custom/plugins/zsh-autosuggestions" }
+            - { repo: "https://github.com/zsh-users/zsh-syntax-highlighting.git", dest: "~/.config/zsh/custom/plugins/zsh-syntax-highlighting" }
+            - { repo: "https://github.com/joshskidmore/zsh-fzf-history-search.git", dest: "~/.config/zsh/custom/plugins/zsh-fzf-history-search" }
+            - { repo: "https://github.com/zdharma-continuum/fast-syntax-highlighting.git", dest: "~/.config/zsh/custom/plugins/fast-syntax-highlighting" }
           ansible.builtin.git:
-            repo: "https://github.com/ohmyzsh/ohmyzsh.git"
-            dest: "{{ lookup('ansible.builtin.env', 'HOME') }}/.oh-my-zsh"
-            version: "{{ ohmyzsh_version }}"
-            depth: 1
-            update: true
-
-        - name: Install zsh-autosuggestions plugin
-          ansible.builtin.git:
-            repo: "https://github.com/zsh-users/zsh-autosuggestions.git"
-            dest: "{{ lookup('ansible.builtin.env', 'HOME') }}/.config/zsh/custom/plugins/zsh-autosuggestions"
-            version: "{{ zsh_autosuggest_version }}"
-            depth: 1
-            update: true
-
-        - name: Install zsh-syntax-highlighting plugin
-          ansible.builtin.git:
-            repo: "https://github.com/zsh-users/zsh-syntax-highlighting.git"
-            dest: "{{ lookup('ansible.builtin.env', 'HOME') }}/.config/zsh/custom/plugins/zsh-syntax-highlighting"
-            version: "{{ zsh_syntax_highlight_version }}"
-            depth: 1
-            update: true
-
-        - name: Install zsh-fzf-history-search plugin
-          ansible.builtin.git:
-            repo: "https://github.com/joshskidmore/zsh-fzf-history-search.git"
-            dest: "{{ lookup('ansible.builtin.env', 'HOME') }}/.config/zsh/custom/plugins/zsh-fzf-history-search"
-            version: "{{ zsh_fzf_hist_version }}"
-            depth: 1
-            update: true
-
-        - name: Install fast-syntax-highlighting plugin
-          ansible.builtin.git:
-            repo: "https://github.com/zdharma-continuum/fast-syntax-highlighting.git"
-            dest: "{{ lookup('ansible.builtin.env', 'HOME') }}/.config/zsh/custom/plugins/fast-syntax-highlighting"
-            version: "{{ fast_syntax_highlight_version }}"
+            repo: "{{ item.repo }}"
+            dest: "{{ item.dest | expanduser }}"
             depth: 1
             update: true
 
