@@ -1,63 +1,29 @@
 ---
 - name: Machine setup
   hosts: localhost
-  become: true
   connection: local
+  become: true
   gather_facts: true
 
+  collections:
+    - community.general
+
   tasks:
-    - name: Get my user
-      set_fact:
+    - name: Determine regular (non-root) user running this play
+      ansible.builtin.set_fact:
         remote_regular_user: "{{ ansible_env.SUDO_USER or ansible_user_id }}"
 
-    # Run this whole block AS the regular user, not root
-    - name: Install Neovim under ~/.local (user scope)
-      become_user: "{{ remote_regular_user }}"
-      block:
-        - name: Ensure ~/.local/{bin,opt} exist
-          ansible.builtin.file:
-            path: "{{ item }}"
-            state: directory
-            mode: "0755"
-          loop:
-            - "~/.local/bin"
-            - "~/.local/opt"
+    ###########################################################################
+    # Base system prep
+    ###########################################################################
 
-        - name: Download Neovim binary tarball from GitHub release
-          ansible.builtin.get_url:
-            url: "https://github.com/jmtzt/dotfiles/releases/download/nvim-0.12.0-dev-glibc231/nvim-linux-x86_64-glibc231.tar.gz"
-            dest: "~/.local/opt/nvim.tar.gz"
-            mode: "0644"
-            force: true
-          register: nvim_tar
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
 
-        - name: Remove previous extracted nvim (if new tarball downloaded)
-          ansible.builtin.file:
-            path: "~/.local/opt/nvim"
-            state: absent
-          when: nvim_tar.changed
-
-        - name: Create ~/.local/opt/nvim (extract target)
-          ansible.builtin.file:
-            path: "~/.local/opt/nvim"
-            state: directory
-            mode: "0755"
-
-        - name: Extract Neovim tarball (bin/ and share/ at root)
-          ansible.builtin.unarchive:
-            src: "~/.local/opt/nvim.tar.gz"
-            dest: "~/.local/opt/nvim"
-            remote_src: true
-
-        - name: Symlink nvim into ~/.local/bin
-          ansible.builtin.file:
-            src: "~/.local/opt/nvim/bin/nvim"
-            dest: "~/.local/bin/nvim"
-            state: link
-            force: true
-
-    - name: Install packages
-      apt:
+    - name: Install base packages (includes zsh)
+      ansible.builtin.apt:
         name:
           - git
           - curl
@@ -77,65 +43,94 @@
           - direnv
           - tree
           - software-properties-common
+          - openssh-client
         state: present
 
-    - name: Update system packages
-      apt:
-        update_cache: yes
+    - name: Ensure fd is available as 'fd' on Debian/Ubuntu (symlink fdfind)
+      ansible.builtin.file:
+        src: /usr/bin/fdfind
+        dest: /usr/local/bin/fd
+        state: link
+      when: ansible_facts['os_family'] == 'Debian'
 
-    - name: Install Node.js dependencies
-      apt:
+    - name: Ensure locales package is installed
+      ansible.builtin.apt:
+        name: locales
+        state: present
+
+    - name: Generate en_US.UTF-8 locale if missing
+      ansible.builtin.command: locale-gen en_US.UTF-8
+      args:
+        creates: /usr/lib/locale/en_US.utf8
+
+    - name: Set system locale to en_US.UTF-8
+      ansible.builtin.lineinfile:
+        path: /etc/default/locale
+        line: 'LANG="en_US.UTF-8"'
+        create: true
+
+    - name: Update session locale (idempotent)
+      ansible.builtin.shell: update-locale LANG=en_US.UTF-8
+      args:
+        executable: /bin/bash
+      changed_when: false
+
+    - name: Ensure Node.js repo dependencies are present
+      ansible.builtin.apt:
         name:
           - ca-certificates
           - curl
           - gnupg
         state: present
 
-    - name: Create keyrings directory
-      file:
+    - name: Create /etc/apt/keyrings directory
+      ansible.builtin.file:
         path: /etc/apt/keyrings
         state: directory
-        mode: '0755'
+        mode: "0755"
 
     - name: Import NodeSource GPG key
-      shell: |
-        curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+      ansible.builtin.shell: |
+        curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key \
+        | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
       args:
         creates: /etc/apt/keyrings/nodesource.gpg
 
-    - name: Add NodeSource repository
-      lineinfile:
+    - name: Add NodeSource repository (Node 22)
+      ansible.builtin.lineinfile:
         path: /etc/apt/sources.list.d/nodesource.list
         line: "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_22.x nodistro main"
-        create: yes
+        create: true
 
-    - name: Update package cache after adding NodeSource repo
-      apt:
-        update_cache: yes
+    - name: Update apt cache after adding NodeSource
+      ansible.builtin.apt:
+        update_cache: true
+
+    ###########################################################################
+    # Git PPA (latest Git) and tools
+    ###########################################################################
 
     - name: Add Git PPA repository
-      apt_repository:
+      ansible.builtin.apt_repository:
         repo: ppa:git-core/ppa
         state: present
       register: git_ppa_added
 
-    - name: Update package cache after adding Git PPA
-      apt:
-        update_cache: yes
+    - name: Update apt cache after adding Git PPA
+      ansible.builtin.apt:
+        update_cache: true
       when: git_ppa_added.changed
 
     - name: Install/upgrade Git to latest version
-      apt:
+      ansible.builtin.apt:
         name: git
         state: latest
 
-    - name: Ensure OpenSSH client is present (needed for ssh signing)
-      apt:
-        name: openssh-client
-        state: present
+    ###########################################################################
+    # Configure Git for the regular user (requires community.general)
+    ###########################################################################
 
-    # Configure Git for the regular user (not root)
-    - name: Configure global Git identity and SSH signing
+    - name: Configure global Git identity and SSH signing (user scope)
       become_user: "{{ remote_regular_user }}"
       block:
         - name: Set user.name / user.email / user.signingkey
@@ -144,8 +139,8 @@
             value: "{{ item.value }}"
             scope: global
           loop:
-            - { name: "user.name",      value: "Joao Tozato" }
-            - { name: "user.email",     value: "joao.tozato@voize.de" }
+            - { name: "user.name",       value: "Joao Tozato" }
+            - { name: "user.email",      value: "joao.tozato@voize.de" }
             - { name: "user.signingkey", value: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIN52Pm/N1JReKh1ysY1h3xqP4XX6VxVk4H4ropc9vP52" }
 
         - name: Set gpg.format to ssh and enable commit signing
@@ -154,66 +149,127 @@
             value: "{{ item.value }}"
             scope: global
           loop:
-            - { name: "gpg.format",   value: "ssh" }
+            - { name: "gpg.format",     value: "ssh" }
             - { name: "commit.gpgsign", value: "true" }
 
-    - name: Change shell to zsh
-      user:
+    ###########################################################################
+    # Switch shell to zsh (after zsh is installed)
+    ###########################################################################
+
+    - name: Change default shell to zsh for {{ remote_regular_user }}
+      ansible.builtin.user:
         name: "{{ remote_regular_user }}"
         shell: /usr/bin/zsh
+
+    ###########################################################################
+    # User-scope: Neovim under ~/.local and developer tooling
+    ###########################################################################
+
+    - name: Install Neovim under ~/.local (user scope)
+      become_user: "{{ remote_regular_user }}"
+      block:
+        - name: Ensure ~/.local/{bin,opt} exist
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: directory
+            mode: "0755"
+          loop:
+            - "~/.local/bin"
+            - "~/.local/opt"
+
+        - name: Download Neovim binary tarball from GitHub release
+          ansible.builtin.get_url:
+            url: "https://github.com/jmtzt/dotfiles/releases/download/nvim-0.12.0-dev-glibc231/nvim-linux-x86_64-glibc231.tar.gz"
+            dest: "~/.local/opt/nvim.tar.gz"
+            mode: "0644"
+            force: true
+            # checksum: "sha256:PUT_CHECKSUM_HERE_IF_YOU_HAVE_ONE"
+          register: nvim_tar
+
+        - name: Remove previous extracted nvim (if new tarball downloaded)
+          ansible.builtin.file:
+            path: "~/.local/opt/nvim"
+            state: absent
+          when: nvim_tar.changed
+
+        - name: Create ~/.local/opt/nvim (extract target)
+          ansible.builtin.file:
+            path: "~/.local/opt/nvim"
+            state: directory
+            mode: "0755"
+
+        - name: Extract Neovim tarball (bin/ and share/ at root)
+          ansible.builtin.unarchive:
+            src: "~/.local/opt/nvim.tar.gz"
+            dest: "~/.local/opt/nvim"
+            remote_src: true
+            extra_opts: [--no-same-owner]
+
+        - name: Symlink nvim into ~/.local/bin
+          ansible.builtin.file:
+            src: "~/.local/opt/nvim/bin/nvim"
+            dest: "~/.local/bin/nvim"
+            state: link
+            force: true
+
+    ###########################################################################
+    # User-scope: Fonts, Tmux, zoxide, Oh My Zsh & plugins, Neovim config
+    ###########################################################################
 
     - name: Setup fonts, Tmux, and apply dotfiles
       become_user: "{{ remote_regular_user }}"
       block:
         - name: Ensure fonts directory exists
-          file:
+          ansible.builtin.file:
             path: "~/.fonts"
             state: directory
             mode: "0755"
 
-        - name: Check if Jetbrains Mono exists
-          stat:
+        - name: Check if JetBrains Mono Nerd Font exists
+          ansible.builtin.stat:
             path: "~/.fonts/JetBrainsMonoNerdFontMono-Regular.ttf"
           register: jetbrains_mono_exists
 
-        - name: Download and unpack Jetbrains mono font
-          when: not jetbrains_mono_exists.stat.exists
-          unarchive:
-            src: https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/JetBrainsMono.zip
+        - name: Download and unpack JetBrains Mono Nerd Font
+          ansible.builtin.unarchive:
+            src: "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/JetBrainsMono.zip"
             dest: "~/.fonts/"
             remote_src: true
+          when: not jetbrains_mono_exists.stat.exists
 
         - name: Clone Oh My Tmux repository
-          git:
-            repo: 'https://github.com/gpakosz/.tmux.git'
+          ansible.builtin.git:
+            repo: "https://github.com/gpakosz/.tmux.git"
             dest: "~/.tmux"
-            clone: yes
-            update: yes
+            clone: true
+            update: true
+            depth: 1
 
         - name: Create symlink for the main .tmux.conf
-          file:
+          ansible.builtin.file:
             src: "~/.tmux/.tmux.conf"
             dest: "~/.tmux.conf"
             state: link
-            force: yes
+            force: true
 
-        - name: Copy custom tmux config from chezmoi source
+        - name: Copy custom tmux config from chezmoi source if present
           ansible.builtin.copy:
             src: "~/.local/share/chezmoi/dot_tmux.conf.local"
             dest: "~/.tmux.conf.local"
-            remote_src: yes
-            force: yes
-            mode: '0644'
+            remote_src: true
+            force: true
+            mode: "0644"
+          ignore_errors: true  # in case chezmoi file doesn't exist
 
-        - name: Install zoxide via official script
-          shell:
-            cmd: "curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh"
+        - name: Install zoxide via official script (idempotent by creates)
+          ansible.builtin.shell: |
+            curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh
           args:
             creates: "~/.local/bin/zoxide"
-          changed_when: true
+            executable: /bin/bash
 
         - name: Ensure custom zsh plugin/theme dirs exist
-          file:
+          ansible.builtin.file:
             path: "{{ item }}"
             state: directory
             mode: "0755"
@@ -221,46 +277,45 @@
             - "~/.config/zsh/custom/plugins"
             - "~/.config/zsh/custom/themes"
 
-        - name: Install Oh My Zsh
+        - name: Install Oh My Zsh (via git clone, no external installer script)
           ansible.builtin.git:
-            repo: https://github.com/ohmyzsh/ohmyzsh.git
-            dest: ~/.oh-my-zsh
+            repo: "https://github.com/ohmyzsh/ohmyzsh.git"
+            dest: "~/.oh-my-zsh"
             depth: 1
             update: true
 
         - name: Install zsh-autosuggestions plugin
           ansible.builtin.git:
-            repo: https://github.com/zsh-users/zsh-autosuggestions.git
-            dest: ~/.config/zsh/custom/plugins/zsh-autosuggestions
+            repo: "https://github.com/zsh-users/zsh-autosuggestions.git"
+            dest: "~/.config/zsh/custom/plugins/zsh-autosuggestions"
             depth: 1
             update: true
 
         - name: Install zsh-syntax-highlighting plugin
           ansible.builtin.git:
-            repo: https://github.com/zsh-users/zsh-syntax-highlighting.git
-            dest: ~/.config/zsh/custom/plugins/zsh-syntax-highlighting
+            repo: "https://github.com/zsh-users/zsh-syntax-highlighting.git"
+            dest: "~/.config/zsh/custom/plugins/zsh-syntax-highlighting"
             depth: 1
             update: true
 
         - name: Install zsh-fzf-history-search plugin
           ansible.builtin.git:
-            repo: https://github.com/joshskidmore/zsh-fzf-history-search.git
-            dest: ~/.config/zsh/custom/plugins/zsh-fzf-history-search
+            repo: "https://github.com/joshskidmore/zsh-fzf-history-search.git"
+            dest: "~/.config/zsh/custom/plugins/zsh-fzf-history-search"
             depth: 1
             update: true
 
         - name: Install fast-syntax-highlighting plugin
           ansible.builtin.git:
-            repo: https://github.com/zdharma-continuum/fast-syntax-highlighting.git
-            dest: ~/.config/zsh/custom/plugins/fast-syntax-highlighting
+            repo: "https://github.com/zdharma-continuum/fast-syntax-highlighting.git"
+            dest: "~/.config/zsh/custom/plugins/fast-syntax-highlighting"
             depth: 1
             update: true
 
         - name: Clone Neovim config repo
           ansible.builtin.git:
-            repo: https://github.com/jmtzt/vim.git
-            dest: ~/.config/nvim
+            repo: "https://github.com/jmtzt/vim.git"
+            dest: "~/.config/nvim"
             version: main
             depth: 1
-            update: yes
-
+            update: true
