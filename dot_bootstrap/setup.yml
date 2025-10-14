@@ -85,8 +85,7 @@
       register: nodesource_gpg
 
     - name: Dearmor NodeSource key
-      ansible.builtin.command: >
-        gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg /etc/apt/keyrings/nodesource.asc
+      ansible.builtin.command: gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg /etc/apt/keyrings/nodesource.asc
       when: not nodesource_gpg.stat.exists
 
     - name: Remove ASCII key after dearmor
@@ -311,4 +310,5 @@
             version: main
             depth: 1
             update: true
+
 
