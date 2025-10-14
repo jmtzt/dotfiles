@@ -7,21 +7,32 @@
 
   vars:
     remote_regular_user: "{{ ansible_env.SUDO_USER or ansible_user_id }}"
+
+    # NodeSource repo (Node 22)
     nodesource_keyring_dir: /etc/apt/keyrings
     nodesource_key_asc: /etc/apt/keyrings/nodesource.asc
     nodesource_key_gpg: /etc/apt/keyrings/nodesource.gpg
     nodesource_repo_line: "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_22.x nodistro main"
 
+    # Pin git clones (use tags/SHAs to satisfy ansible-lint latest[git])
+    ohmyzsh_version: master        # e.g., v2.0.0 or a commit SHA
+    tmux_repo_version: master      # pin to a tag/sha to avoid latest[git]
+    zsh_autosuggest_version: master
+    zsh_syntax_highlight_version: master
+    zsh_fzf_hist_version: master
+    fast_syntax_highlight_version: master
+    nvim_config_version: main
+
   tasks:
     ###########################################################################
     # Base system prep
     ###########################################################################
-    - name: Update apt cache
+    - name: Update apt cache (initial)
       ansible.builtin.apt:
         update_cache: true
         cache_valid_time: 3600
 
-    - name: Install base packages (includes zsh)
+    - name: Install base packages (includes zsh & zoxide)
       ansible.builtin.apt:
         name:
           - git
@@ -45,14 +56,22 @@
           - openssh-client
           - ca-certificates
           - gnupg
+          - zoxide
         state: present
 
-    - name: Ensure fd is available as 'fd' (Debian/Ubuntu)
+    - name: Ensure fd is available as 'fd' on Debian/Ubuntu (symlink fdfind if present)
+      ansible.builtin.stat:
+        path: /usr/bin/fdfind
+      register: fdfind_bin
+
+    - name: Create fd symlink
       ansible.builtin.file:
         src: /usr/bin/fdfind
         dest: /usr/local/bin/fd
         state: link
-      when: ansible_facts['os_family'] == 'Debian'
+      when:
+        - ansible_facts['os_family'] == 'Debian'
+        - fdfind_bin.stat.exists
 
     ###########################################################################
     # NodeSource repository setup (Node 22)
@@ -69,72 +88,82 @@
         dest: "{{ nodesource_key_asc }}"
         mode: "0644"
         force: true
+      notify: Convert NodeSource key to keyring
 
-    - name: Convert NodeSource key to GPG keyring (idempotent)
+    - name: Ensure NodeSource GPG keyring exists (idempotent)
       ansible.builtin.command:
         cmd: "gpg --dearmor -o {{ nodesource_key_gpg }} {{ nodesource_key_asc }}"
         creates: "{{ nodesource_key_gpg }}"
-
-    - name: Remove ASCII key
-      ansible.builtin.file:
-        path: "{{ nodesource_key_asc }}"
-        state: absent
+      notify: Remove NodeSource ASCII key
+      # This will usually be skipped (creates), the handler runs clean-up.
 
     - name: Add NodeSource repository (Node 22)
       ansible.builtin.apt_repository:
         repo: "{{ nodesource_repo_line }}"
         filename: "nodesource"
         state: present
-
-    - name: Update apt cache after adding NodeSource
-      ansible.builtin.apt:
-        update_cache: true
+      notify: Update apt cache
 
     ###########################################################################
-    # Git PPA (latest Git)
+    # Git PPA (stable Git) and install
     ###########################################################################
     - name: Add Git PPA repository
       ansible.builtin.apt_repository:
         repo: ppa:git-core/ppa
         state: present
-      register: git_ppa_added
+      notify: Update apt cache
 
-    - name: Update apt cache after adding Git PPA
-      ansible.builtin.apt:
-        update_cache: true
-      when: git_ppa_added.changed
-
-    - name: Install/upgrade Git to latest version
+    - name: Ensure Git is installed (no 'latest')
       ansible.builtin.apt:
         name: git
-        state: latest
+        state: present
 
+    ############################################################################
+    # Configure Git for the regular user
     ###########################################################################
-    # Configure Git (no community.general)
-    ###########################################################################
-    - name: Configure global Git identity
-      become_user: "{{ remote_regular_user }}"
-      ansible.builtin.shell: |
-        git config --global user.name "Joao Tozato"
-        git config --global user.email "joao.tozato@voize.de"
-        git config --global user.signingkey "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIN52Pm/N1JReKh1ysY1h3xqP4XX6VxVk4H4ropc9vP52"
-        git config --global gpg.format ssh
-        git config --global commit.gpgsign true
-      args:
-        executable: /bin/bash
+    #- name: Configure global Git identity and signing
+  become: true
+  become_user: "{{ remote_regular_user }}"
+  block:
+    - name: Ensure ~/.gitconfig exists
+      ansible.builtin.file:
+        path: "{{ lookup('ansible.builtin.env', 'HOME') }}/.gitconfig"
+        state: touch
+        owner: "{{ remote_regular_user }}"
+        group: "{{ remote_regular_user }}"
+        mode: "0644"
+
+    - name: Write Git config (managed block)
+      ansible.builtin.blockinfile:
+        path: "{{ lookup('ansible.builtin.env', 'HOME') }}/.gitconfig"
+        marker: "# {mark} ANSIBLE MANAGED GIT CONFIG"
+        create: true
+        owner: "{{ remote_regular_user }}"
+        group: "{{ remote_regular_user }}"
+        mode: "0644"
+        block: |
+          [user]
+            name = Joao Tozato
+            email = joao.tozato@voize.de
+            signingkey = ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIN52Pm/N1JReKh1ysY1h3xqP4XX6VxVk4H4ropc9vP52
+          [gpg]
+            format = ssh
+          [commit]
+            gpgsign = true
 
     ###########################################################################
     # Switch shell to zsh
     ###########################################################################
-    - name: Change default shell to zsh
+    - name: Change default shell to zsh for user
       ansible.builtin.user:
         name: "{{ remote_regular_user }}"
         shell: /usr/bin/zsh
 
     ###########################################################################
-    # User-scope: Neovim
+    # User-scope: Neovim under ~/.local
     ###########################################################################
     - name: Install Neovim under ~/.local
+      become: true
       become_user: "{{ remote_regular_user }}"
       block:
         - name: Ensure ~/.local/{bin,opt} exist
@@ -153,12 +182,7 @@
             mode: "0644"
             force: true
           register: nvim_tar
-
-        - name: Remove old nvim if tarball changed
-          ansible.builtin.file:
-            path: "{{ lookup('ansible.builtin.env', 'HOME') }}/.local/opt/nvim"
-            state: absent
-          when: nvim_tar.changed
+          notify: Remove previous extracted nvim
 
         - name: Create extraction dir
           ansible.builtin.file:
@@ -184,6 +208,7 @@
     # User-scope: Fonts, Tmux, Zsh, Neovim config
     ###########################################################################
     - name: Setup fonts and dotfiles
+      become: true
       become_user: "{{ remote_regular_user }}"
       block:
         - name: Ensure fonts dir
@@ -197,7 +222,7 @@
             path: "{{ lookup('ansible.builtin.env', 'HOME') }}/.fonts/JetBrainsMonoNerdFontMono-Regular.ttf"
           register: jetbrains_font
 
-        - name: Download JetBrains Mono Nerd Font
+        - name: Download JetBrains Mono Nerd Font (if missing)
           ansible.builtin.unarchive:
             src: "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/JetBrainsMono.zip"
             dest: "{{ lookup('ansible.builtin.env', 'HOME') }}/.fonts/"
@@ -208,6 +233,7 @@
           ansible.builtin.git:
             repo: "https://github.com/gpakosz/.tmux.git"
             dest: "{{ lookup('ansible.builtin.env', 'HOME') }}/.tmux"
+            version: "{{ tmux_repo_version }}"
             depth: 1
             update: true
 
@@ -219,20 +245,17 @@
             force: true
 
         - name: Copy local tmux config if present
+          ansible.builtin.stat:
+            path: "{{ lookup('ansible.builtin.env', 'HOME') }}/.local/share/chezmoi/dot_tmux.conf.local"
+          register: tmux_local
+
+        - name: Copy tmux.conf.local
           ansible.builtin.copy:
             src: "{{ lookup('ansible.builtin.env', 'HOME') }}/.local/share/chezmoi/dot_tmux.conf.local"
             dest: "{{ lookup('ansible.builtin.env', 'HOME') }}/.tmux.conf.local"
             remote_src: true
-            force: true
             mode: "0644"
-          ignore_errors: true
-
-        - name: Install zoxide
-          ansible.builtin.shell: |
-            curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh
-          args:
-            creates: "{{ lookup('ansible.builtin.env', 'HOME') }}/.local/bin/zoxide"
-            executable: /bin/bash
+          when: tmux_local.stat.exists
 
         - name: Ensure custom zsh plugin dirs
           ansible.builtin.file:
@@ -243,16 +266,43 @@
             - "{{ lookup('ansible.builtin.env', 'HOME') }}/.config/zsh/custom/plugins"
             - "{{ lookup('ansible.builtin.env', 'HOME') }}/.config/zsh/custom/themes"
 
-        - name: Install Oh My Zsh and plugins
-          loop:
-            - { repo: "https://github.com/ohmyzsh/ohmyzsh.git", dest: "~/.oh-my-zsh" }
-            - { repo: "https://github.com/zsh-users/zsh-autosuggestions.git", dest: "~/.config/zsh/custom/plugins/zsh-autosuggestions" }
-            - { repo: "https://github.com/zsh-users/zsh-syntax-highlighting.git", dest: "~/.config/zsh/custom/plugins/zsh-syntax-highlighting" }
-            - { repo: "https://github.com/joshskidmore/zsh-fzf-history-search.git", dest: "~/.config/zsh/custom/plugins/zsh-fzf-history-search" }
-            - { repo: "https://github.com/zdharma-continuum/fast-syntax-highlighting.git", dest: "~/.config/zsh/custom/plugins/fast-syntax-highlighting" }
+        - name: Install Oh My Zsh
           ansible.builtin.git:
-            repo: "{{ item.repo }}"
-            dest: "{{ item.dest | expanduser }}"
+            repo: "https://github.com/ohmyzsh/ohmyzsh.git"
+            dest: "{{ lookup('ansible.builtin.env', 'HOME') }}/.oh-my-zsh"
+            version: "{{ ohmyzsh_version }}"
+            depth: 1
+            update: true
+
+        - name: Install zsh-autosuggestions plugin
+          ansible.builtin.git:
+            repo: "https://github.com/zsh-users/zsh-autosuggestions.git"
+            dest: "{{ lookup('ansible.builtin.env', 'HOME') }}/.config/zsh/custom/plugins/zsh-autosuggestions"
+            version: "{{ zsh_autosuggest_version }}"
+            depth: 1
+            update: true
+
+        - name: Install zsh-syntax-highlighting plugin
+          ansible.builtin.git:
+            repo: "https://github.com/zsh-users/zsh-syntax-highlighting.git"
+            dest: "{{ lookup('ansible.builtin.env', 'HOME') }}/.config/zsh/custom/plugins/zsh-syntax-highlighting"
+            version: "{{ zsh_syntax_highlight_version }}"
+            depth: 1
+            update: true
+
+        - name: Install zsh-fzf-history-search plugin
+          ansible.builtin.git:
+            repo: "https://github.com/joshskidmore/zsh-fzf-history-search.git"
+            dest: "{{ lookup('ansible.builtin.env', 'HOME') }}/.config/zsh/custom/plugins/zsh-fzf-history-search"
+            version: "{{ zsh_fzf_hist_version }}"
+            depth: 1
+            update: true
+
+        - name: Install fast-syntax-highlighting plugin
+          ansible.builtin.git:
+            repo: "https://github.com/zdharma-continuum/fast-syntax-highlighting.git"
+            dest: "{{ lookup('ansible.builtin.env', 'HOME') }}/.config/zsh/custom/plugins/fast-syntax-highlighting"
+            version: "{{ fast_syntax_highlight_version }}"
             depth: 1
             update: true
 
@@ -260,7 +310,26 @@
           ansible.builtin.git:
             repo: "https://github.com/jmtzt/vim.git"
             dest: "{{ lookup('ansible.builtin.env', 'HOME') }}/.config/nvim"
-            version: main
+            version: "{{ nvim_config_version }}"
             depth: 1
             update: true
 
+  handlers:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: Convert NodeSource key to keyring
+      ansible.builtin.command:
+        cmd: "gpg --dearmor -o {{ nodesource_key_gpg }} {{ nodesource_key_asc }}"
+        creates: "{{ nodesource_key_gpg }}"
+
+    - name: Remove NodeSource ASCII key
+      ansible.builtin.file:
+        path: "{{ nodesource_key_asc }}"
+        state: absent
+
+    - name: Remove previous extracted nvim
+      ansible.builtin.file:
+        path: "{{ lookup('ansible.builtin.env', 'HOME') }}/.local/opt/nvim"
+        state: absent
