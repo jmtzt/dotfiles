@@ -32,7 +32,7 @@
         update_cache: true
         cache_valid_time: 3600
 
-    - name: Install base packages (includes zsh & zoxide)
+    - name: Install base packages
       ansible.builtin.apt:
         name:
           - git
@@ -56,7 +56,6 @@
           - openssh-client
           - ca-certificates
           - gnupg
-          - zoxide
         state: present
 
     - name: Ensure fd is available as 'fd' on Debian/Ubuntu (symlink fdfind if present)
@@ -157,6 +156,25 @@
       ansible.builtin.user:
         name: "{{ remote_regular_user }}"
         shell: /usr/bin/zsh
+
+    - name: Install zoxide package
+      ansible.builtin.apt:
+        name: zoxide
+        state: present
+      register: zoxide_pkg
+
+    - name: Configure zoxide init in ~/.zshrc
+      become: true
+      become_user: "{{ remote_regular_user }}"
+      ansible.builtin.lineinfile:
+        path: "{{ lookup('ansible.builtin.env', 'HOME') }}/.zshrc"
+        create: true
+        owner: "{{ remote_regular_user }}"
+        group: "{{ remote_regular_user }}"
+        mode: "0644"
+        line: 'eval "$(zoxide init zsh)"'
+        insertafter: EOF
+        state: present
 
     ###########################################################################
     # User-scope: Neovim under ~/.local
