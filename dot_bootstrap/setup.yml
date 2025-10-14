@@ -114,10 +114,16 @@
         state: present
       notify: Update apt cache
 
-    - name: Ensure Git is installed (no 'latest')
+    - name: Ensure Git is upgraded to the latest version
       ansible.builtin.apt:
         name: git
-        state: present
+        state: latest
+      register: git_pkg
+
+    - name: Show installed Git version
+      ansible.builtin.command: git --version
+      changed_when: false
+      when: git_pkg is changed
 
     ###########################################################################
     # Configure Git for the regular user
