@@ -181,9 +181,13 @@
     - name: Install zoxide into ~/.local/bin (user scope)
       become: true
       become_user: "{{ remote_regular_user }}"
-      ansible.builtin.shell: /bin/bash /tmp/zoxide_install.sh -b ~/.local/bin
+      ansible.builtin.command:
+        argv:
+          - /bin/bash
+          - /tmp/zoxide_install.sh
+          - -b
+          - "/home/{{ remote_regular_user }}/.local/bin"
       args:
-        executable: /bin/bash
         creates: "/home/{{ remote_regular_user }}/.local/bin/zoxide"
 
     - name: Remove zoxide installer script
