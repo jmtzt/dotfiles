@@ -168,7 +168,7 @@
       become: true
       become_user: "{{ remote_regular_user }}"
       ansible.builtin.file:
-        path: "{{ lookup('ansible.builtin.env', 'HOME') }}/.local/bin"
+        path: "/home/{{ remote_regular_user }}/.local/bin"
         state: directory
         mode: "0755"
 
@@ -181,10 +181,10 @@
     - name: Install zoxide into ~/.local/bin (user scope)
       become: true
       become_user: "{{ remote_regular_user }}"
-      ansible.builtin.shell: >
-        /bin/bash /tmp/zoxide_install.sh -b {{ lookup('ansible.builtin.env', 'HOME') }}/.local/bin
+      ansible.builtin.shell: /bin/bash /tmp/zoxide_install.sh -b ~/.local/bin
       args:
-        creates: "{{ lookup('ansible.builtin.env', 'HOME') }}/.local/bin/zoxide"
+        executable: /bin/bash
+        creates: "/home/{{ remote_regular_user }}/.local/bin/zoxide"
 
     - name: Remove zoxide installer script
       ansible.builtin.file:
@@ -195,7 +195,7 @@
       become: true
       become_user: "{{ remote_regular_user }}"
       ansible.builtin.lineinfile:
-        path: "{{ lookup('ansible.builtin.env', 'HOME') }}/.zshrc"
+        path: "/home/{{ remote_regular_user }}/.zshrc"
         create: true
         owner: "{{ remote_regular_user }}"
         group: "{{ remote_regular_user }}"
