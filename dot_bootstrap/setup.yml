@@ -163,15 +163,28 @@
     ###########################################################################
     # Install zoxide
     ###########################################################################
-    - name: Install zoxide using upstream install script
+    - name: Download zoxide install script
       become: true
       become_user: "{{ remote_regular_user }}"
-      shell: |
-        set -o pipefail
-        curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh
+      ansible.builtin.get_url:
+        url: https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh
+        dest: /tmp/zoxide_install.sh
+        mode: "0755"
+
+    - name: Run zoxide install script (no profiles/rc)
+      become: true
+      become_user: "{{ remote_regular_user }}"
+      ansible.builtin.command:
+        argv:
+          - /bin/bash
+          - --noprofile
+          - --norc
+          - /tmp/zoxide_install.sh
       args:
-        executable: /bin/bash
         creates: "/home/{{ remote_regular_user }}/.local/bin/zoxide"
+      environment:
+        LC_ALL: C.UTF-8
+        LANG: C.UTF-8
 
     - name: Configure zoxide init in ~/.zshrc
       become: true
