@@ -59,9 +59,10 @@
         state: present
 
     - name: Generate en_US.UTF-8 locale if missing
-      ansible.builtin.command: locale-gen en_US.UTF-8
+      ansible.builtin.shell: locale-gen en_US.UTF-8
       args:
         creates: /usr/lib/locale/en_US.utf8
+        executable: /bin/bash
 
     - name: Set system locale to en_US.UTF-8
       ansible.builtin.lineinfile:
