@@ -87,7 +87,6 @@
         dest: "{{ nodesource_key_asc }}"
         mode: "0644"
         force: true
-      notify: Convert NodeSource key to keyring
 
     - name: Convert NodeSource key to keyring
       ansible.builtin.command:
