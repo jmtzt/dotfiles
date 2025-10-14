@@ -53,29 +53,6 @@
         state: link
       when: ansible_facts['os_family'] == 'Debian'
 
-    - name: Ensure locales package is installed
-      ansible.builtin.apt:
-        name: locales
-        state: present
-
-    - name: Generate en_US.UTF-8 locale if missing
-      ansible.builtin.shell: locale-gen en_US.UTF-8
-      args:
-        creates: /usr/lib/locale/en_US.utf8
-        executable: /bin/bash
-
-    - name: Set system locale to en_US.UTF-8
-      ansible.builtin.lineinfile:
-        path: /etc/default/locale
-        line: 'LANG="en_US.UTF-8"'
-        create: true
-
-    - name: Update session locale (idempotent)
-      ansible.builtin.shell: update-locale LANG=en_US.UTF-8
-      args:
-        executable: /bin/bash
-      changed_when: false
-
     - name: Ensure Node.js repo dependencies are present
       ansible.builtin.apt:
         name:
