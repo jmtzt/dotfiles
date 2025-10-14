@@ -9,6 +9,9 @@
     - community.general
 
   tasks:
+    ###########################################################################
+    # Detect user
+    ###########################################################################
     - name: Determine regular (non-root) user running this play
       ansible.builtin.set_fact:
         remote_regular_user: "{{ ansible_env.SUDO_USER or ansible_user_id }}"
@@ -16,7 +19,6 @@
     ###########################################################################
     # Base system prep
     ###########################################################################
-
     - name: Update apt cache
       ansible.builtin.apt:
         update_cache: true
@@ -53,6 +55,9 @@
         state: link
       when: ansible_facts['os_family'] == 'Debian'
 
+    ###########################################################################
+    # NodeSource repository setup
+    ###########################################################################
     - name: Ensure Node.js repo dependencies are present
       ansible.builtin.apt:
         name:
@@ -67,12 +72,27 @@
         state: directory
         mode: "0755"
 
-    - name: Import NodeSource GPG key
-      ansible.builtin.shell: |
-        curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key \
-        | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
-      args:
-        creates: /etc/apt/keyrings/nodesource.gpg
+    - name: Download NodeSource GPG key (ASCII)
+      ansible.builtin.get_url:
+        url: https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key
+        dest: /etc/apt/keyrings/nodesource.asc
+        mode: "0644"
+        force: true
+
+    - name: Check if NodeSource GPG key already exists
+      ansible.builtin.stat:
+        path: /etc/apt/keyrings/nodesource.gpg
+      register: nodesource_gpg
+
+    - name: Dearmor NodeSource key
+      ansible.builtin.command: >
+        gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg /etc/apt/keyrings/nodesource.asc
+      when: not nodesource_gpg.stat.exists
+
+    - name: Remove ASCII key after dearmor
+      ansible.builtin.file:
+        path: /etc/apt/keyrings/nodesource.asc
+        state: absent
 
     - name: Add NodeSource repository (Node 22)
       ansible.builtin.lineinfile:
@@ -85,9 +105,8 @@
         update_cache: true
 
     ###########################################################################
-    # Git PPA (latest Git) and tools
+    # Git PPA (latest Git) and config
     ###########################################################################
-
     - name: Add Git PPA repository
       ansible.builtin.apt_repository:
         repo: ppa:git-core/ppa
@@ -105,9 +124,8 @@
         state: latest
 
     ###########################################################################
-    # Configure Git for the regular user (requires community.general)
+    # Configure Git for the regular user
     ###########################################################################
-
     - name: Configure global Git identity and SSH signing (user scope)
       become_user: "{{ remote_regular_user }}"
       block:
@@ -131,9 +149,8 @@
             - { name: "commit.gpgsign", value: "true" }
 
     ###########################################################################
-    # Switch shell to zsh (after zsh is installed)
+    # Switch shell to zsh
     ###########################################################################
-
     - name: Change default shell to zsh for {{ remote_regular_user }}
       ansible.builtin.user:
         name: "{{ remote_regular_user }}"
@@ -142,7 +159,6 @@
     ###########################################################################
     # User-scope: Neovim under ~/.local and developer tooling
     ###########################################################################
-
     - name: Install Neovim under ~/.local (user scope)
       become_user: "{{ remote_regular_user }}"
       block:
@@ -161,7 +177,6 @@
             dest: "~/.local/opt/nvim.tar.gz"
             mode: "0644"
             force: true
-            # checksum: "sha256:PUT_CHECKSUM_HERE_IF_YOU_HAVE_ONE"
           register: nvim_tar
 
         - name: Remove previous extracted nvim (if new tarball downloaded)
@@ -193,7 +208,6 @@
     ###########################################################################
     # User-scope: Fonts, Tmux, zoxide, Oh My Zsh & plugins, Neovim config
     ###########################################################################
-
     - name: Setup fonts, Tmux, and apply dotfiles
       become_user: "{{ remote_regular_user }}"
       block:
@@ -237,7 +251,7 @@
             remote_src: true
             force: true
             mode: "0644"
-          ignore_errors: true  # in case chezmoi file doesn't exist
+          ignore_errors: true
 
         - name: Install zoxide via official script (idempotent by creates)
           ansible.builtin.shell: |
@@ -255,7 +269,7 @@
             - "~/.config/zsh/custom/plugins"
             - "~/.config/zsh/custom/themes"
 
-        - name: Install Oh My Zsh (via git clone, no external installer script)
+        - name: Install Oh My Zsh (via git clone)
           ansible.builtin.git:
             repo: "https://github.com/ohmyzsh/ohmyzsh.git"
             dest: "~/.oh-my-zsh"
@@ -297,3 +311,4 @@
             version: main
             depth: 1
             update: true
+
