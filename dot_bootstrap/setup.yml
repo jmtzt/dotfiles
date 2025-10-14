@@ -164,36 +164,15 @@
     ###########################################################################
     # Install zoxide
     ###########################################################################
-    - name: Ensure ~/.local/bin exists for {{ remote_regular_user }}
+    - name: Install zoxide using upstream install script
       become: true
       become_user: "{{ remote_regular_user }}"
-      ansible.builtin.file:
-        path: "/home/{{ remote_regular_user }}/.local/bin"
-        state: directory
-        mode: "0755"
-
-    - name: Download zoxide installer script
-      ansible.builtin.get_url:
-        url: https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh
-        dest: /tmp/zoxide_install.sh
-        mode: "0755"
-
-    - name: Install zoxide into ~/.local/bin (user scope)
-      become: true
-      become_user: "{{ remote_regular_user }}"
-      ansible.builtin.command:
-        argv:
-          - /bin/bash
-          - /tmp/zoxide_install.sh
-          - -b
-          - "/home/{{ remote_regular_user }}/.local/bin"
+      shell: |
+        set -o pipefail
+        curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh
       args:
+        executable: /bin/bash
         creates: "/home/{{ remote_regular_user }}/.local/bin/zoxide"
-
-    - name: Remove zoxide installer script
-      ansible.builtin.file:
-        path: /tmp/zoxide_install.sh
-        state: absent
 
     - name: Configure zoxide init in ~/.zshrc
       become: true
