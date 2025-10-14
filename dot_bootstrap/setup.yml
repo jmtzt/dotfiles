@@ -337,11 +337,6 @@
       ansible.builtin.apt:
         update_cache: true
 
-    - name: Convert NodeSource key to keyring
-      ansible.builtin.command:
-        cmd: "gpg --dearmor -o {{ nodesource_key_gpg }} {{ nodesource_key_asc }}"
-        creates: "{{ nodesource_key_gpg }}"
-
     - name: Remove NodeSource ASCII key
       ansible.builtin.file:
         path: "{{ nodesource_key_asc }}"
