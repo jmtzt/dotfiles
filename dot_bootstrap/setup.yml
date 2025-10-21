@@ -7,6 +7,7 @@
 
   vars:
     remote_regular_user: "{{ ansible_env.SUDO_USER or ansible_user_id }}"
+    ansible_shell_executable: /bin/bash
 
     # NodeSource repo (Node 22)
     nodesource_keyring_dir: /etc/apt/keyrings
@@ -121,7 +122,8 @@
       register: git_pkg
 
     - name: Show installed Git version
-      ansible.builtin.command: git --version
+      ansible.builtin.command:
+        argv: ["git", "--version"]
       changed_when: false
       when: git_pkg is changed
 
@@ -157,14 +159,6 @@
                 format = ssh
               [commit]
                 gpgsign = true
-
-    ###########################################################################
-    # Switch shell to zsh
-    ###########################################################################
-    - name: Change default shell to zsh for user
-      ansible.builtin.user:
-        name: "{{ remote_regular_user }}"
-        shell: /usr/bin/zsh
 
     ###########################################################################
     # Install zoxide
@@ -349,6 +343,14 @@
             version: "{{ nvim_config_version }}"
             depth: 1
             update: true
+
+    ###########################################################################
+    # Switch shell to zsh
+    ###########################################################################
+    - name: Change default shell to zsh for user
+      ansible.builtin.user:
+        name: "{{ remote_regular_user }}"
+        shell: /usr/bin/zsh
 
   handlers:
     - name: Update apt cache
