@@ -352,6 +352,88 @@
             depth: 1
             update: true
 
+  ###############################################################################
+  # User-scope: Rust (rustup) + tree-sitter-cli (built locally)
+  ###############################################################################
+    - name: Install rustup and tree-sitter-cli for regular user
+      become: true
+      become_user: "{{ remote_regular_user }}"
+      block:
+        - name: Ensure ~/.cargo/bin exists
+          ansible.builtin.file:
+            path: "/home/{{ remote_regular_user }}/.cargo/bin"
+            state: directory
+            mode: "0755"
+
+        - name: Install rustup (coexist with system Rust; skip PATH check)
+          ansible.builtin.shell: |
+            set -euo pipefail
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+            | RUSTUP_INIT_SKIP_PATH_CHECK=yes sh -s -- -y
+          args:
+            executable: /bin/bash
+            creates: "/home/{{ remote_regular_user }}/.cargo/bin/rustup"
+          environment:
+            # Quiet the locale warning you saw earlier
+            LC_ALL: C.UTF-8
+            LANG: C.UTF-8
+
+        - name: Add cargo bin to PATH in .zshrc
+          ansible.builtin.lineinfile:
+            path: "/home/{{ remote_regular_user }}/.zshrc"
+            create: true
+            owner: "{{ remote_regular_user }}"
+            group: "{{ remote_regular_user }}"
+            mode: "0644"
+            line: 'export PATH="$HOME/.cargo/bin:$PATH"'
+            insertafter: EOF
+            state: present
+
+        - name: Add cargo bin to PATH in .bashrc (for non-zsh shells)
+          ansible.builtin.lineinfile:
+            path: "/home/{{ remote_regular_user }}/.bashrc"
+            create: true
+            owner: "{{ remote_regular_user }}"
+            group: "{{ remote_regular_user }}"
+            mode: "0644"
+            line: 'export PATH="$HOME/.cargo/bin:$PATH"'
+            insertafter: EOF
+            state: present
+
+        - name: Update rustup to latest stable and make it default
+          ansible.builtin.shell: |
+            set -euo pipefail
+            source "$HOME/.cargo/env"
+            rustup update stable
+            rustup default stable
+          args:
+            executable: /bin/bash
+          changed_when: false  # rustup is idempotent enough; avoid noisy diffs
+
+        - name: Install tree-sitter-cli (latest, built locally)
+          ansible.builtin.shell: |
+            set -euo pipefail
+            source "$HOME/.cargo/env"
+            cargo install tree-sitter-cli --locked
+          args:
+            executable: /bin/bash
+            creates: "/home/{{ remote_regular_user }}/.cargo/bin/tree-sitter"
+
+        - name: Verify tree-sitter version
+          ansible.builtin.shell: |
+            set -euo pipefail
+            source "$HOME/.cargo/env"
+            tree-sitter --version
+          args:
+            executable: /bin/bash
+          register: treesitter_version
+          changed_when: false
+
+        - name: Show tree-sitter version
+          ansible.builtin.debug:
+            msg: "{{ treesitter_version.stdout }}"
+
+
     ###########################################################################
     # Switch shell to zsh
     ###########################################################################
