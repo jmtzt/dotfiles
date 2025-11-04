@@ -344,6 +344,14 @@
             depth: 1
             update: true
 
+        - name: Clone Neovim-mini config
+          ansible.builtin.git:
+            repo: "https://github.com/jmtzt/nvim.git"
+            dest: "{{ lookup('ansible.builtin.env', 'HOME') }}/.config/nvim-mini"
+            version: "{{ nvim_config_version }}"
+            depth: 1
+            update: true
+
     ###########################################################################
     # Switch shell to zsh
     ###########################################################################
