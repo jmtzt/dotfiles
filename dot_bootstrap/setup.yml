@@ -433,6 +433,58 @@
           ansible.builtin.debug:
             msg: "{{ treesitter_version.stdout }}"
 
+    ##########################################################################
+    # User-scope: Install Rust-based utilities (gum, sesh)
+    ###########################################################################
+    - name: Install gum and sesh (Rust crates)
+      become: true
+      become_user: "{{ remote_regular_user }}"
+      block:
+        - name: Install gum (latest, built locally)
+          ansible.builtin.shell: |
+            set -euo pipefail
+            source "$HOME/.cargo/env"
+            cargo install gum --locked
+          args:
+            executable: /bin/bash
+            creates: "/home/{{ remote_regular_user }}/.cargo/bin/gum"
+
+        - name: Install sesh (latest, built locally)
+          ansible.builtin.shell: |
+            set -euo pipefail
+            source "$HOME/.cargo/env"
+            cargo install sesh --locked
+          args:
+            executable: /bin/bash
+            creates: "/home/{{ remote_regular_user }}/.cargo/bin/sesh"
+
+        - name: Verify gum version
+          ansible.builtin.shell: |
+            set -euo pipefail
+            source "$HOME/.cargo/env"
+            gum --version
+          args:
+            executable: /bin/bash
+          register: gum_version
+          changed_when: false
+
+        - name: Show gum version
+          ansible.builtin.debug:
+            msg: "Gum version: {{ gum_version.stdout }}"
+
+        - name: Verify sesh version
+          ansible.builtin.shell: |
+            set -euo pipefail
+            source "$HOME/.cargo/env"
+            sesh --version
+          args:
+            executable: /bin/bash
+          register: sesh_version
+          changed_when: false
+
+        - name: Show sesh version
+          ansible.builtin.debug:
+            msg: "Sesh version: {{ sesh_version.stdout }}"
 
     ###########################################################################
     # Switch shell to zsh
