@@ -486,6 +486,29 @@
           ansible.builtin.debug:
             msg: "Sesh version: {{ sesh_version.stdout }}"
 
+        - name: Install yazi-fm
+          ansible.builtin.shell: |
+            set -euo pipefail
+            source "$HOME/.cargo/env"
+            cargo install yazi-fm --locked
+          args:
+            executable: /bin/bash
+            creates: "/home/{{ remote_regular_user }}/.cargo/bin/yazi"
+
+        - name: Verify yazi version
+          ansible.builtin.shell: |
+            set -euo pipefail
+            source "$HOME/.cargo/env"
+            yazi --version
+          args:
+            executable: /bin/bash
+          register: yazi_version
+          changed_when: false
+
+        - name: Show yazi version
+          ansible.builtin.debug:
+            msg: "Yazi version: {{ yazi_version.stdout }}"
+
     ###########################################################################
     # Switch shell to zsh
     ###########################################################################
