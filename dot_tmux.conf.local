@@ -205,6 +205,9 @@ set -g mouse on
 #set -g status-keys vi
 set -g mode-keys vi
 
+bind-key -r "f" display-popup -E -w 40% "sesh connect \"$(
+ sesh list -i | gum filter --limit 1 --no-sort --fuzzy --placeholder 'Pick a sesh' --height 50 --prompt='⚡'
+)\""
 bind-key -r t run-shell "tmux neww ~/.config/tmux/tmux-sessionizer.sh"
 bind e set-window-option synchronize-panes
 bind-key x kill-pane # skip "kill-pane 1? (y/n)" prompt
