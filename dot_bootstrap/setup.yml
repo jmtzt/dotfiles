@@ -26,6 +26,27 @@
 
   tasks:
     ###########################################################################
+    # Locale Setup (fix locale issues first)
+    ###########################################################################
+    - name: Setup system locale
+      block:
+        - name: Install locales package
+          ansible.builtin.apt:
+            name: locales
+            state: present
+            
+        - name: Generate en_US.UTF-8 locale
+          ansible.builtin.locale_gen:
+            name: en_US.UTF-8
+            state: present
+            
+        - name: Set system locale
+          ansible.builtin.lineinfile:
+            path: /etc/default/locale
+            create: true
+            line: 'LANG=en_US.UTF-8'
+
+    ###########################################################################
     # Base system prep
     ###########################################################################
     - name: Update apt cache (initial)
@@ -57,6 +78,7 @@
           - openssh-client
           - ca-certificates
           - gnupg
+          - golang-go
         state: present
 
     - name: Ensure fd is available as 'fd' on Debian/Ubuntu (symlink fdfind if present)
@@ -126,6 +148,91 @@
         argv: ["git", "--version"]
       changed_when: false
       when: git_pkg is changed
+
+    ###########################################################################
+    # Development Tools Updates
+    ###########################################################################
+    - name: Install/update development tools
+      block:
+        # Update ripgrep to latest version
+        - name: Download latest ripgrep
+          ansible.builtin.get_url:
+            url: "https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep_14.1.1-1_amd64.deb"
+            dest: "/tmp/ripgrep_14.1.1-1_amd64.deb"
+            mode: "0644"
+        
+        - name: Install updated ripgrep
+          ansible.builtin.apt:
+            deb: "/tmp/ripgrep_14.1.1-1_amd64.deb"
+            state: present
+            
+        # LuaRocks update for debugpy
+        - name: Download LuaRocks source
+          ansible.builtin.get_url:
+            url: "https://luarocks.org/releases/luarocks-3.12.2.tar.gz"
+            dest: "/tmp/luarocks-3.12.2.tar.gz"
+            mode: "0644"
+            
+        - name: Extract LuaRocks
+          ansible.builtin.unarchive:
+            src: "/tmp/luarocks-3.12.2.tar.gz"
+            dest: "/tmp/"
+            remote_src: true
+            
+        - name: Build and install LuaRocks
+          ansible.builtin.shell: |
+            cd /tmp/luarocks-3.12.2
+            ./configure && make && make install
+          args:
+            creates: "/usr/local/bin/luarocks"
+            
+        - name: Install luasocket via LuaRocks
+          ansible.builtin.command:
+            cmd: luarocks install luasocket
+
+    ###########################################################################
+    # NVM and Node.js Setup (Node 22)
+    ###########################################################################
+    - name: Install NVM and Node.js
+      become_user: "{{ remote_regular_user }}"
+      block:
+        - name: Download and install NVM
+          ansible.builtin.shell: |
+            curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+          args:
+            creates: "/home/{{ remote_regular_user }}/.nvm/nvm.sh"
+            
+        - name: Install Node.js 22 (latest) and set as default
+          ansible.builtin.shell: |
+            source ~/.nvm/nvm.sh && nvm install 22 && nvm use 22 && nvm alias default 22
+          args:
+            executable: /bin/bash
+            creates: "/home/{{ remote_regular_user }}/.nvm/versions/node/v22*"
+
+        - name: Enable corepack
+          ansible.builtin.shell: |
+            source ~/.nvm/nvm.sh && corepack enable
+          args:
+            executable: /bin/bash
+
+        - name: Install global npm packages
+          ansible.builtin.shell: |
+            source ~/.nvm/nvm.sh && npm i -g vscode-langservers-extracted @openai/codex
+          args:
+            executable: /bin/bash
+
+    ###########################################################################
+    # Claude CLI
+    ###########################################################################
+    - name: Install Claude CLI
+      become_user: "{{ remote_regular_user }}"
+      ansible.builtin.shell: |
+        curl -fsSL https://claude.ai/install.sh | bash
+      args:
+        creates: "/home/{{ remote_regular_user }}/.local/bin/claude"
+      environment:
+        LC_ALL: en_US.UTF-8
+        LANG: en_US.UTF-8
 
     ###########################################################################
     # Configure Git for the regular user
@@ -434,9 +541,9 @@
             msg: "{{ treesitter_version.stdout }}"
 
     ##########################################################################
-    # User-scope: Install Rust-based utilities (gum, sesh)
+    # User-scope: Install Rust-based utilities (gum only, yazi)
     ###########################################################################
-    - name: Install gum and sesh (Rust crates)
+    - name: Install Rust utilities (gum, yazi)
       become: true
       become_user: "{{ remote_regular_user }}"
       block:
@@ -448,15 +555,6 @@
           args:
             executable: /bin/bash
             creates: "/home/{{ remote_regular_user }}/.cargo/bin/gum"
-
-        - name: Install sesh (latest, built locally)
-          ansible.builtin.shell: |
-            set -euo pipefail
-            source "$HOME/.cargo/env"
-            cargo install sesh --locked
-          args:
-            executable: /bin/bash
-            creates: "/home/{{ remote_regular_user }}/.cargo/bin/sesh"
 
         - name: Verify gum version
           ansible.builtin.shell: |
@@ -471,20 +569,6 @@
         - name: Show gum version
           ansible.builtin.debug:
             msg: "Gum version: {{ gum_version.stdout }}"
-
-        - name: Verify sesh version
-          ansible.builtin.shell: |
-            set -euo pipefail
-            source "$HOME/.cargo/env"
-            sesh --version
-          args:
-            executable: /bin/bash
-          register: sesh_version
-          changed_when: false
-
-        - name: Show sesh version
-          ansible.builtin.debug:
-            msg: "Sesh version: {{ sesh_version.stdout }}"
 
         - name: Install yazi-fm
           ansible.builtin.shell: |
@@ -508,6 +592,32 @@
         - name: Show yazi version
           ansible.builtin.debug:
             msg: "Yazi version: {{ yazi_version.stdout }}"
+
+    ###########################################################################
+    # Go-based tools
+    ###########################################################################
+    - name: Install Go-based tools
+      become_user: "{{ remote_regular_user }}"
+      block:
+        - name: Install sesh via Go
+          ansible.builtin.shell: |
+            go install github.com/joshmedeski/sesh/v2@latest
+          args:
+            executable: /bin/bash
+            creates: "/home/{{ remote_regular_user }}/go/bin/sesh"
+          environment:
+            GOPATH: "/home/{{ remote_regular_user }}/go"
+
+        - name: Ensure Go bin is in PATH for user
+          ansible.builtin.lineinfile:
+            path: "/home/{{ remote_regular_user }}/.zshrc"
+            create: true
+            owner: "{{ remote_regular_user }}"
+            group: "{{ remote_regular_user }}"
+            mode: "0644"
+            line: 'export PATH="$HOME/go/bin:$PATH"'
+            insertafter: EOF
+            state: present
 
     ###########################################################################
     # Switch shell to zsh
