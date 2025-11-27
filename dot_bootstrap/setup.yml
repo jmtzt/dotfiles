@@ -255,6 +255,74 @@
             state: present
 
     ###########################################################################
+    # cbonsai Installation (compile from source)
+    ###########################################################################
+    - name: Install cbonsai dependencies and compile
+      block:
+        - name: Install cbonsai dependencies
+          ansible.builtin.apt:
+            name:
+              - build-essential
+              - git
+              - pkg-config
+              - libncurses6
+              - libncurses-dev
+              - ncurses-base
+              - ncurses-bin
+            state: present
+
+        - name: Clone cbonsai repository
+          become_user: "{{ remote_regular_user }}"
+          ansible.builtin.git:
+            repo: "https://gitlab.com/jallbrit/cbonsai.git"
+            dest: "/tmp/cbonsai"
+            depth: 1
+            force: true
+
+        - name: Compile and install cbonsai to user's ~/.local
+          become_user: "{{ remote_regular_user }}"
+          ansible.builtin.shell: |
+            cd /tmp/cbonsai
+            make install PREFIX=~/.local
+          args:
+            executable: /bin/bash
+            creates: "/home/{{ remote_regular_user }}/.local/bin/cbonsai"
+
+    ###########################################################################
+    # cbonsai Installation (compile from source)
+    ###########################################################################
+    - name: Install cbonsai dependencies and compile
+      block:
+        - name: Install cbonsai dependencies
+          ansible.builtin.apt:
+            name:
+              - build-essential
+              - git
+              - pkg-config
+              - libncurses6
+              - libncurses-dev
+              - ncurses-base
+              - ncurses-bin
+            state: present
+
+        - name: Clone cbonsai repository
+          become_user: "{{ remote_regular_user }}"
+          ansible.builtin.git:
+            repo: "https://gitlab.com/jallbrit/cbonsai.git"
+            dest: "/tmp/cbonsai"
+            depth: 1
+            force: true
+
+        - name: Compile and install cbonsai to user's ~/.local
+          become_user: "{{ remote_regular_user }}"
+          ansible.builtin.shell: |
+            cd /tmp/cbonsai
+            make install PREFIX=~/.local
+          args:
+            executable: /bin/bash
+            creates: "/home/{{ remote_regular_user }}/.local/bin/cbonsai"
+
+    ###########################################################################
     # Claude CLI
     ###########################################################################
     - name: Install Claude CLI
