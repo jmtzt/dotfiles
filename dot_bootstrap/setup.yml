@@ -222,6 +222,39 @@
             executable: /bin/bash
 
     ###########################################################################
+    # Charm Repository Setup (for gum)
+    ###########################################################################
+    - name: Setup Charm repository for gum
+      block:
+        - name: Create keyrings directory for Charm
+          ansible.builtin.file:
+            path: /etc/apt/keyrings
+            state: directory
+            mode: "0755"
+
+        - name: Download Charm GPG key
+          ansible.builtin.shell: |
+            curl -fsSL https://repo.charm.sh/apt/gpg.key | gpg --dearmor -o /etc/apt/keyrings/charm.gpg
+          args:
+            creates: /etc/apt/keyrings/charm.gpg
+
+        - name: Add Charm repository
+          ansible.builtin.copy:
+            content: "deb [signed-by=/etc/apt/keyrings/charm.gpg] https://repo.charm.sh/apt/ * *"
+            dest: /etc/apt/sources.list.d/charm.list
+            mode: "0644"
+          notify: Update apt cache
+
+        - name: Update apt cache for Charm repo
+          ansible.builtin.apt:
+            update_cache: true
+
+        - name: Install gum from Charm repository
+          ansible.builtin.apt:
+            name: gum
+            state: present
+
+    ###########################################################################
     # Claude CLI
     ###########################################################################
     - name: Install Claude CLI
@@ -541,35 +574,12 @@
             msg: "{{ treesitter_version.stdout }}"
 
     ##########################################################################
-    # User-scope: Install Rust-based utilities (gum only, yazi)
+    # User-scope: Install Rust-based utilities (yazi only)
     ###########################################################################
-    - name: Install Rust utilities (gum, yazi)
+    - name: Install Rust utilities (yazi)
       become: true
       become_user: "{{ remote_regular_user }}"
       block:
-        - name: Install gum (latest, built locally)
-          ansible.builtin.shell: |
-            set -euo pipefail
-            source "$HOME/.cargo/env"
-            cargo install gum --locked
-          args:
-            executable: /bin/bash
-            creates: "/home/{{ remote_regular_user }}/.cargo/bin/gum"
-
-        - name: Verify gum version
-          ansible.builtin.shell: |
-            set -euo pipefail
-            source "$HOME/.cargo/env"
-            gum --version
-          args:
-            executable: /bin/bash
-          register: gum_version
-          changed_when: false
-
-        - name: Show gum version
-          ansible.builtin.debug:
-            msg: "Gum version: {{ gum_version.stdout }}"
-
         - name: Install yazi-fm
           ansible.builtin.shell: |
             set -euo pipefail
