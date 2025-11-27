@@ -202,22 +202,54 @@
           args:
             creates: "/home/{{ remote_regular_user }}/.nvm/nvm.sh"
             
+        - name: Add NVM to .zshrc
+          ansible.builtin.blockinfile:
+            path: "/home/{{ remote_regular_user }}/.zshrc"
+            create: true
+            owner: "{{ remote_regular_user }}"
+            group: "{{ remote_regular_user }}"
+            mode: "0644"
+            marker: "# {mark} NVM CONFIGURATION"
+            block: |
+              export NVM_DIR="$HOME/.nvm"
+              [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+              [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
+        - name: Add NVM to .bashrc (fallback)
+          ansible.builtin.blockinfile:
+            path: "/home/{{ remote_regular_user }}/.bashrc"
+            create: true
+            owner: "{{ remote_regular_user }}"
+            group: "{{ remote_regular_user }}"
+            mode: "0644"
+            marker: "# {mark} NVM CONFIGURATION"
+            block: |
+              export NVM_DIR="$HOME/.nvm"
+              [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+              [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+            
         - name: Install Node.js 22 (latest) and set as default
           ansible.builtin.shell: |
-            source ~/.nvm/nvm.sh && nvm install 22 && nvm use 22 && nvm alias default 22
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            nvm install 22 && nvm use 22 && nvm alias default 22
           args:
             executable: /bin/bash
             creates: "/home/{{ remote_regular_user }}/.nvm/versions/node/v22*"
 
         - name: Enable corepack
           ansible.builtin.shell: |
-            source ~/.nvm/nvm.sh && corepack enable
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            corepack enable
           args:
             executable: /bin/bash
 
         - name: Install global npm packages
           ansible.builtin.shell: |
-            source ~/.nvm/nvm.sh && npm i -g vscode-langservers-extracted @openai/codex
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            npm i -g vscode-langservers-extracted @openai/codex
           args:
             executable: /bin/bash
 
