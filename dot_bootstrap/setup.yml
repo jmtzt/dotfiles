@@ -166,6 +166,37 @@
             deb: "/tmp/ripgrep_14.1.1-1_amd64.deb"
             state: present
             
+        # Install lazygit (latest release)
+        - name: Get lazygit latest version
+          ansible.builtin.uri:
+            url: https://api.github.com/repos/jesseduffield/lazygit/releases/latest
+            return_content: true
+          register: lazygit_release
+          
+        - name: Extract lazygit version
+          ansible.builtin.set_fact:
+            lazygit_version: "{{ lazygit_release.json.tag_name | regex_replace('^v', '') }}"
+            
+        - name: Download lazygit tarball
+          ansible.builtin.get_url:
+            url: "https://github.com/jesseduffield/lazygit/releases/download/v{{ lazygit_version }}/lazygit_{{ lazygit_version }}_Linux_x86_64.tar.gz"
+            dest: "/tmp/lazygit.tar.gz"
+            mode: "0644"
+            
+        - name: Extract lazygit binary
+          ansible.builtin.unarchive:
+            src: "/tmp/lazygit.tar.gz"
+            dest: "/tmp/"
+            remote_src: true
+            creates: "/tmp/lazygit"
+            
+        - name: Install lazygit to /usr/local/bin
+          ansible.builtin.copy:
+            src: "/tmp/lazygit"
+            dest: "/usr/local/bin/lazygit"
+            mode: "0755"
+            remote_src: true
+            
         # LuaRocks update for debugpy
         - name: Download LuaRocks source
           ansible.builtin.get_url:
