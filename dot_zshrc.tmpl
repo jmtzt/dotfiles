@@ -106,10 +106,45 @@ function brew() {
   export PATH="$PATH:/usr/local/go/bin"
   export PATH="$HOME/go/bin:$PATH"
   [ -d "$ANDROID_HOME" ] && export PATH="$PATH:$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools:$ANDROID_HOME/cmdline-tools/latest/bin"
-  # Update tmux SSH_AUTH_SOCK if we're in a tmux session
-  if [ -n "$TMUX" ]; then
-    tmux set-environment SSH_AUTH_SOCK "$SSH_AUTH_SOCK" >/dev/null 2>&1
+  # SSH Agent forwarding fix for tmux (when using ssh -A)
+  if [ -n "$SSH_AUTH_SOCK" ] && [ "$SSH_AUTH_SOCK" != "$HOME/.ssh/ssh_auth_sock" ]; then
+    mkdir -p ~/.ssh
+    ln -sf "$SSH_AUTH_SOCK" ~/.ssh/ssh_auth_sock
   fi
+  export SSH_AUTH_SOCK="$HOME/.ssh/ssh_auth_sock"
+
+  # Function to update SSH agent in tmux
+  update_ssh_auth_sock() {
+    if [ -n "$SSH_AUTH_SOCK" ] && [ -n "$TMUX" ]; then
+      # Update the symlink if original socket exists
+      local original_sock=$(readlink ~/.ssh/ssh_auth_sock)
+      if [ -n "$original_sock" ] && [ -S "$original_sock" ]; then
+        tmux set-environment SSH_AUTH_SOCK ~/.ssh/ssh_auth_sock >/dev/null 2>&1
+      else
+        # Try to find a working socket
+        for sock in /tmp/ssh-*/agent.*; do
+          if [ -S "$sock" ] && SSH_AUTH_SOCK="$sock" ssh-add -l >/dev/null 2>&1; then
+            ln -sf "$sock" ~/.ssh/ssh_auth_sock
+            tmux set-environment SSH_AUTH_SOCK ~/.ssh/ssh_auth_sock >/dev/null 2>&1
+            break
+          fi
+        done
+      fi
+    fi
+  }
+
+  # Hook into prompt to refresh SSH socket automatically
+  precmd() {
+    if [ -n "$SSH_AUTH_SOCK" ] && [ -n "$TMUX" ]; then
+      if [ "$SSH_AUTH_SOCK" != ~/.ssh/ssh_auth_sock ] || [ ! -S ~/.ssh/ssh_auth_sock ]; then
+        ln -sf "$SSH_AUTH_SOCK" ~/.ssh/ssh_auth_sock
+        tmux set-environment SSH_AUTH_SOCK ~/.ssh/ssh_auth_sock >/dev/null 2>&1
+      fi
+    fi
+  }
+
+  # Initial update for current session
+  update_ssh_auth_sock
   # NVM (Node Version Manager)
   export NVM_DIR="$HOME/.nvm"
   [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
