@@ -116,19 +116,20 @@ function brew() {
   # Function to update SSH agent in tmux
   update_ssh_auth_sock() {
     if [ -n "$SSH_AUTH_SOCK" ] && [ -n "$TMUX" ]; then
-      # Update the symlink if original socket exists
-      local original_sock=$(readlink ~/.ssh/ssh_auth_sock)
-      if [ -n "$original_sock" ] && [ -S "$original_sock" ]; then
-        tmux set-environment SSH_AUTH_SOCK ~/.ssh/ssh_auth_sock >/dev/null 2>&1
-      else
-        # Try to find a working socket
+      # Test if current socket actually has identities
+      if ! ssh-add -l >/dev/null 2>&1; then
+        # Current socket doesn't work, find a working one
         for sock in /tmp/ssh-*/agent.*; do
           if [ -S "$sock" ] && SSH_AUTH_SOCK="$sock" ssh-add -l >/dev/null 2>&1; then
             ln -sf "$sock" ~/.ssh/ssh_auth_sock
             tmux set-environment SSH_AUTH_SOCK ~/.ssh/ssh_auth_sock >/dev/null 2>&1
+            echo "SSH agent updated to: $sock"
             break
           fi
         done
+      else
+        # Current socket works, just ensure tmux environment is set
+        tmux set-environment SSH_AUTH_SOCK ~/.ssh/ssh_auth_sock >/dev/null 2>&1
       fi
     fi
   }
@@ -136,9 +137,15 @@ function brew() {
   # Hook into prompt to refresh SSH socket automatically
   precmd() {
     if [ -n "$SSH_AUTH_SOCK" ] && [ -n "$TMUX" ]; then
-      if [ "$SSH_AUTH_SOCK" != ~/.ssh/ssh_auth_sock ] || [ ! -S ~/.ssh/ssh_auth_sock ]; then
-        ln -sf "$SSH_AUTH_SOCK" ~/.ssh/ssh_auth_sock
-        tmux set-environment SSH_AUTH_SOCK ~/.ssh/ssh_auth_sock >/dev/null 2>&1
+      # Test if current SSH agent has identities, if not, find a working one
+      if ! ssh-add -l >/dev/null 2>&1; then
+        for sock in /tmp/ssh-*/agent.*; do
+          if [ -S "$sock" ] && SSH_AUTH_SOCK="$sock" ssh-add -l >/dev/null 2>&1; then
+            ln -sf "$sock" ~/.ssh/ssh_auth_sock
+            tmux set-environment SSH_AUTH_SOCK ~/.ssh/ssh_auth_sock >/dev/null 2>&1
+            break
+          fi
+        done
       fi
     fi
   }
