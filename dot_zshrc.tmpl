@@ -112,6 +112,10 @@ function brew() {
     ln -sf "$SSH_AUTH_SOCK" ~/.ssh/ssh_auth_sock
   fi
   export SSH_AUTH_SOCK="$HOME/.ssh/ssh_auth_sock"
+  # Update tmux SSH_AUTH_SOCK if we're in a tmux session
+  if [ -n "$TMUX" ]; then
+    tmux set-environment SSH_AUTH_SOCK "$SSH_AUTH_SOCK" >/dev/null 2>&1
+  fi
   # NVM (Node Version Manager)
   export NVM_DIR="$HOME/.nvm"
   [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
