@@ -79,6 +79,8 @@
           - ca-certificates
           - gnupg
           - golang-go
+          - clang
+          - libclang-dev
         state: present
 
     - name: Ensure fd is available as 'fd' on Debian/Ubuntu (symlink fdfind if present)
