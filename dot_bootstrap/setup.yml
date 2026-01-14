@@ -717,7 +717,7 @@
           ansible.builtin.shell: |
             set -euo pipefail
             source "$HOME/.cargo/env"
-            cargo install yazi-fm --locked
+            cargo install --force --locked yazi-build
           args:
             executable: /bin/bash
             creates: "/home/{{ remote_regular_user }}/.cargo/bin/yazi"
