@@ -117,10 +117,15 @@ function brew() {
   export PATH="$HOME/go/bin:$PATH"
   [ -d "$ANDROID_HOME" ] && export PATH="$PATH:$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools:$ANDROID_HOME/cmdline-tools/latest/bin"
 
-  if [ -n "$SSH_AUTH_SOCK" ] && [ "$SSH_AUTH_SOCK" != "$HOME/.ssh-socket" ] && [ -S "$SSH_AUTH_SOCK" ]; then
-    ln -snf "$SSH_AUTH_SOCK" "$HOME/.ssh-socket"
+  SSH_SOCKET_LINK="$HOME/.ssh-socket"
+  if [ -n "$SSH_AUTH_SOCK" ] && [ "$SSH_AUTH_SOCK" != "$SSH_SOCKET_LINK" ] && [ -S "$SSH_AUTH_SOCK" ]; then
+      ln -snf "$SSH_AUTH_SOCK" "$SSH_SOCKET_LINK"
   fi
-  export SSH_AUTH_SOCK="$HOME/.ssh-socket"
+  if [ -n "$TMUX" ]; then
+     export SSH_AUTH_SOCK="$SSH_SOCKET_LINK"
+  elif [ -z "$SSH_AUTH_SOCK" ] && [ -S "$SSH_SOCKET_LINK" ]; then
+     export SSH_AUTH_SOCK="$SSH_SOCKET_LINK"
+  fi
 #
 #  # Function to update SSH agent in tmux
 #  update_ssh_auth_sock() {
