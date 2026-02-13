@@ -47,6 +47,7 @@ alias av="source .venv/bin/activate"
 alias todo="vim ~/work/todo.md"
 alias lzd='lazydocker'
 alias mvim="NVIM_APPNAME=nvim-mini nvim"
+alias tmux_ssh_sock="tmux set-environment -g SSH_AUTH_SOCK '$HOME/.ssh-socket'"
 
 # fd alias for Ubuntu (package name: fdfind)
 command -v fdfind >/dev/null 2>&1 && alias fd="fdfind"
@@ -115,6 +116,11 @@ function brew() {
   export PATH="$PATH:/usr/local/go/bin"
   export PATH="$HOME/go/bin:$PATH"
   [ -d "$ANDROID_HOME" ] && export PATH="$PATH:$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools:$ANDROID_HOME/cmdline-tools/latest/bin"
+
+  if [ -n "$SSH_AUTH_SOCK" ] && [ -S "$SSH_AUTH_SOCK" ]; then
+    ln -snf "$SSH_AUTH_SOCK" "$HOME/.ssh-socket"
+  fi
+  export SSH_AUTH_SOCK="$HOME/.ssh-socket"
   # SSH Agent forwarding fix for tmux (when using ssh -A)
 #  if [ -n "$SSH_AUTH_SOCK" ] && [ "$SSH_AUTH_SOCK" != "$HOME/.ssh/ssh_auth_sock" ]; then
 #    mkdir -p ~/.ssh
