@@ -48,6 +48,8 @@ alias todo="vim ~/work/todo.md"
 alias lzd='lazydocker'
 alias mvim="NVIM_APPNAME=nvim-mini nvim"
 alias tmux_ssh_sock="tmux set-environment -g SSH_AUTH_SOCK '$HOME/.ssh-socket'"
+alias gl="git --no-pager log --oneline --graph --decorate origin/master..HEAD"
+alias glog="git --no-pager log --oneline --decorate --graph"
 
 # fd alias for Ubuntu (package name: fdfind)
 command -v fdfind >/dev/null 2>&1 && alias fd="fdfind"
