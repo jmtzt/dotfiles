@@ -112,6 +112,11 @@
         dest: "{{ nodesource_key_asc }}"
         mode: "0644"
         force: true
+        timeout: 30
+      register: nodesource_key_dl
+      retries: 5
+      delay: 5
+      until: nodesource_key_dl is succeeded
 
     - name: Convert NodeSource key to keyring
       ansible.builtin.command:
@@ -162,6 +167,11 @@
             url: "https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep_14.1.1-1_amd64.deb"
             dest: "/tmp/ripgrep_14.1.1-1_amd64.deb"
             mode: "0644"
+            timeout: 30
+          register: ripgrep_dl
+          retries: 5
+          delay: 5
+          until: ripgrep_dl is succeeded
         
         - name: Install updated ripgrep
           ansible.builtin.apt:
@@ -173,7 +183,11 @@
           ansible.builtin.uri:
             url: https://api.github.com/repos/jesseduffield/lazygit/releases/latest
             return_content: true
+            timeout: 30
           register: lazygit_release
+          retries: 5
+          delay: 5
+          until: lazygit_release is succeeded
           
         - name: Extract lazygit version
           ansible.builtin.set_fact:
@@ -184,6 +198,12 @@
             url: "https://github.com/jesseduffield/lazygit/releases/download/v{{ lazygit_version }}/lazygit_{{ lazygit_version }}_Linux_x86_64.tar.gz"
             dest: "/tmp/lazygit.tar.gz"
             mode: "0644"
+            timeout: 30
+            force: true
+          register: lazygit_dl
+          retries: 5
+          delay: 5
+          until: lazygit_dl is succeeded
             
         - name: Extract lazygit binary
           ansible.builtin.unarchive:
@@ -205,6 +225,11 @@
             url: "https://luarocks.org/releases/luarocks-3.12.2.tar.gz"
             dest: "/tmp/luarocks-3.12.2.tar.gz"
             mode: "0644"
+            timeout: 30
+          register: luarocks_dl
+          retries: 5
+          delay: 5
+          until: luarocks_dl is succeeded
             
         - name: Extract LuaRocks
           ansible.builtin.unarchive:
@@ -375,6 +400,11 @@
         url: https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh
         dest: /tmp/zoxide_install.sh
         mode: "0755"
+        timeout: 30
+      register: zoxide_dl
+      retries: 5
+      delay: 5
+      until: zoxide_dl is succeeded
 
     - name: Run zoxide install script (no profiles/rc)
       become: true
@@ -425,7 +455,11 @@
             dest: "~/.local/opt/nvim.tar.gz"
             mode: "0644"
             force: true
+            timeout: 30
           register: nvim_tar
+          retries: 5
+          delay: 5
+          until: nvim_tar is succeeded
 
         - name: Remove previous extracted nvim (if new tarball downloaded)
           ansible.builtin.file:
@@ -484,9 +518,21 @@
             path: "{{ lookup('ansible.builtin.env', 'HOME') }}/.fonts/JetBrainsMonoNerdFontMono-Regular.ttf"
           register: jetbrains_font
 
-        - name: Download JetBrains Mono Nerd Font (if missing)
+        - name: Download JetBrains Mono Nerd Font tarball (if missing)
+          ansible.builtin.get_url:
+            url: "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/JetBrainsMono.zip"
+            dest: "/tmp/JetBrainsMono.zip"
+            mode: "0644"
+            timeout: 30
+          register: jetbrains_dl
+          retries: 5
+          delay: 5
+          until: jetbrains_dl is succeeded
+          when: not jetbrains_font.stat.exists
+
+        - name: Extract JetBrains Mono Nerd Font (if missing)
           ansible.builtin.unarchive:
-            src: "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/JetBrainsMono.zip"
+            src: "/tmp/JetBrainsMono.zip"
             dest: "{{ lookup('ansible.builtin.env', 'HOME') }}/.fonts/"
             remote_src: true
           when: not jetbrains_font.stat.exists
@@ -498,6 +544,13 @@
             version: "{{ tmux_repo_version }}"
             depth: 1
             update: true
+          environment:
+            GIT_HTTP_LOW_SPEED_LIMIT: "1000"
+            GIT_HTTP_LOW_SPEED_TIME: "30"
+          register: tmux_clone
+          retries: 5
+          delay: 5
+          until: tmux_clone is succeeded
 
         - name: Symlink .tmux.conf
           ansible.builtin.file:
@@ -540,6 +593,13 @@
             dest: "{{ item.dest | expanduser }}"
             depth: 1
             update: true
+          environment:
+            GIT_HTTP_LOW_SPEED_LIMIT: "1000"
+            GIT_HTTP_LOW_SPEED_TIME: "30"
+          register: omz_clone
+          retries: 5
+          delay: 5
+          until: omz_clone is succeeded
 
         - name: Clone Neovim config
           ansible.builtin.git:
@@ -548,6 +608,13 @@
             version: "{{ nvim_config_version }}"
             depth: 1
             update: true
+          environment:
+            GIT_HTTP_LOW_SPEED_LIMIT: "1000"
+            GIT_HTTP_LOW_SPEED_TIME: "30"
+          register: nvim_clone
+          retries: 5
+          delay: 5
+          until: nvim_clone is succeeded
 
         - name: Clone Neovim-mini config
           ansible.builtin.git:
@@ -556,6 +623,13 @@
             version: "{{ nvim_config_version }}"
             depth: 1
             update: true
+          environment:
+            GIT_HTTP_LOW_SPEED_LIMIT: "1000"
+            GIT_HTTP_LOW_SPEED_TIME: "30"
+          register: nvim_mini_clone
+          retries: 5
+          delay: 5
+          until: nvim_mini_clone is succeeded
 
   ###############################################################################
   # User-scope: Rust (rustup) + tree-sitter-cli (built locally)
