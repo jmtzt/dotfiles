@@ -22,7 +22,7 @@
     zsh_syntax_highlight_version: master
     zsh_fzf_hist_version: master
     fast_syntax_highlight_version: master
-    nvim_config_version: main
+    nvim_config_version: vim-pack-migration
 
   tasks:
     ###########################################################################
@@ -320,74 +320,6 @@
             state: present
 
     ###########################################################################
-    # cbonsai Installation (compile from source)
-    ###########################################################################
-    - name: Install cbonsai dependencies and compile
-      block:
-        - name: Install cbonsai dependencies
-          ansible.builtin.apt:
-            name:
-              - build-essential
-              - git
-              - pkg-config
-              - libncurses6
-              - libncurses-dev
-              - ncurses-base
-              - ncurses-bin
-            state: present
-
-        - name: Clone cbonsai repository
-          become_user: "{{ remote_regular_user }}"
-          ansible.builtin.git:
-            repo: "https://gitlab.com/jallbrit/cbonsai.git"
-            dest: "/tmp/cbonsai"
-            depth: 1
-            force: true
-
-        - name: Compile and install cbonsai to user's ~/.local
-          become_user: "{{ remote_regular_user }}"
-          ansible.builtin.shell: |
-            cd /tmp/cbonsai
-            make install PREFIX=~/.local
-          args:
-            executable: /bin/bash
-            creates: "/home/{{ remote_regular_user }}/.local/bin/cbonsai"
-
-    ###########################################################################
-    # cbonsai Installation (compile from source)
-    ###########################################################################
-    - name: Install cbonsai dependencies and compile
-      block:
-        - name: Install cbonsai dependencies
-          ansible.builtin.apt:
-            name:
-              - build-essential
-              - git
-              - pkg-config
-              - libncurses6
-              - libncurses-dev
-              - ncurses-base
-              - ncurses-bin
-            state: present
-
-        - name: Clone cbonsai repository
-          become_user: "{{ remote_regular_user }}"
-          ansible.builtin.git:
-            repo: "https://gitlab.com/jallbrit/cbonsai.git"
-            dest: "/tmp/cbonsai"
-            depth: 1
-            force: true
-
-        - name: Compile and install cbonsai to user's ~/.local
-          become_user: "{{ remote_regular_user }}"
-          ansible.builtin.shell: |
-            cd /tmp/cbonsai
-            make install PREFIX=~/.local
-          args:
-            executable: /bin/bash
-            creates: "/home/{{ remote_regular_user }}/.local/bin/cbonsai"
-
-    ###########################################################################
     # Claude CLI
     ###########################################################################
     - name: Install Claude CLI
@@ -489,7 +421,7 @@
 
         - name: Download Neovim binary tarball from GitHub release
           ansible.builtin.get_url:
-            url: "https://github.com/jmtzt/dotfiles/releases/download/nvim-0.12.0-dev-glibc231/nvim-linux-x86_64-glibc231.tar.gz"
+            url: "https://github.com/neovim/neovim-releases/releases/download/v0.12.2/nvim-linux-x86_64.tar.gz"
             dest: "~/.local/opt/nvim.tar.gz"
             mode: "0644"
             force: true
@@ -611,7 +543,7 @@
 
         - name: Clone Neovim config
           ansible.builtin.git:
-            repo: "https://github.com/jmtzt/vim.git"
+            repo: "https://github.com/jmtzt/nvim.git"
             dest: "{{ lookup('ansible.builtin.env', 'HOME') }}/.config/nvim"
             version: "{{ nvim_config_version }}"
             depth: 1
